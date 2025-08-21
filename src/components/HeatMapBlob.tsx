@@ -3,10 +3,9 @@ interface HeatMapBlobProps {
   y: number;
   size: number;
   intensity: number;
-  count: number;
 }
 
-export function HeatMapBlob({ x, y, size, intensity, count }: HeatMapBlobProps) {
+export function HeatMapBlob({ x, y, size, intensity }: HeatMapBlobProps) {
   const getColorClass = (intensity: number) => {
     if (intensity >= 80) return 'bg-heat-critical';
     if (intensity >= 60) return 'bg-heat-high';
@@ -19,13 +18,14 @@ export function HeatMapBlob({ x, y, size, intensity, count }: HeatMapBlobProps) 
     return Math.max(0.6, intensity / 100);
   };
 
-  // Create organic blob shape using CSS and size variations
-  const getBlobStyle = (size: number, count: number) => {
-    const baseSize = Math.max(20, size * (0.8 + count * 0.1));
+  // Create organic blob shape based on camera analytics - population density affects size
+  const getBlobStyle = (size: number) => {
+    const baseSize = Math.max(15, size * 0.8); // Size reflects population density from camera data
+    const variation = intensity * 0.02; // Slight variation based on dwell time
     return {
       width: `${baseSize}px`,
-      height: `${baseSize * 0.9}px`, // Slightly oval
-      borderRadius: `${baseSize * 0.6}px ${baseSize * 0.4}px ${baseSize * 0.5}px ${baseSize * 0.7}px`,
+      height: `${baseSize * (0.85 + variation)}px`, // Organic oval shape
+      borderRadius: `${baseSize * 0.7}px ${baseSize * 0.4}px ${baseSize * 0.6}px ${baseSize * 0.8}px`,
     };
   };
 
@@ -44,7 +44,7 @@ export function HeatMapBlob({ x, y, size, intensity, count }: HeatMapBlobProps) 
           blur-sm transition-all duration-700
         `}
         style={{
-          ...getBlobStyle(size, count),
+          ...getBlobStyle(size),
           opacity: getOpacity(intensity),
         }}
       />
@@ -56,7 +56,7 @@ export function HeatMapBlob({ x, y, size, intensity, count }: HeatMapBlobProps) 
           blur-xs
         `}
         style={{
-          ...getBlobStyle(size * 0.4, count),
+          ...getBlobStyle(size * 0.4),
           opacity: getOpacity(intensity) * 0.8,
         }}
       />
@@ -68,7 +68,7 @@ export function HeatMapBlob({ x, y, size, intensity, count }: HeatMapBlobProps) 
           blur-lg animate-pulse
         `}
         style={{
-          ...getBlobStyle(size * 1.2, count),
+          ...getBlobStyle(size * 1.2),
           opacity: getOpacity(intensity) * 0.3,
         }}
       />
