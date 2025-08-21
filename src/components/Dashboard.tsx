@@ -24,15 +24,15 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - 50/50 Split */}
       <div className="flex h-[calc(100vh-80px)]">
-        {/* Left Panel - Camera Feeds */}
-        <div className="w-96 flex-shrink-0">
+        {/* Left Panel - Camera Matrix (50%) */}
+        <div className="w-1/2 flex-shrink-0">
           <CameraPanel />
         </div>
 
-        {/* Right Panel - Heat Map */}
-        <div className="flex-1">
+        {/* Right Panel - Heat Map Analytics (50%) */}
+        <div className="w-1/2">
           <StoreLayout />
         </div>
       </div>
