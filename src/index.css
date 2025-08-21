@@ -44,11 +44,12 @@ All colors MUST be HSL.
     --camera-tile: 222 18% 14%;
     --camera-tile-active: 222 18% 18%;
     
-    /* Heat Map Colors - Production Color Scheme */
-    --heat-low: 216 100% 60%;      /* Blue - least time spent */
-    --heat-medium: 142 76% 50%;    /* Green - comfort zones */
-    --heat-high: 48 100% 60%;      /* Yellow - more time spent */
-    --heat-critical: 0 84% 55%;     /* Red - highest time spent */
+    /* Heat Map Colors - 5 Color System */
+    --heat-very-low: 216 100% 60%;   /* Blue - minimal activity */
+    --heat-low: 180 100% 50%;        /* Cyan - low activity */
+    --heat-medium: 142 76% 50%;      /* Green - moderate activity */
+    --heat-high: 48 100% 60%;        /* Yellow - high activity */
+    --heat-critical: 0 84% 55%;      /* Red - maximum activity */
     
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(195 100% 50%), hsl(195 85% 40%));

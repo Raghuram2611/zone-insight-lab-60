@@ -103,32 +103,18 @@ export function StoreLayout() {
         <div className="space-y-4">
           <HeatMapLegend />
           
-          {/* Real-time analytics */}
+          {/* Heat map status */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-foreground">Live Analytics</h3>
+            <h3 className="text-sm font-medium text-foreground">Heat Map Status</h3>
             
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">Current Occupancy</div>
-              <div className="text-2xl font-bold text-foreground">144</div>
-              <div className="text-xs text-heat-high">+12% from yesterday</div>
+              <div className="text-xs text-muted-foreground">Analysis Mode</div>
+              <div className="text-lg font-semibold text-primary">Live Camera Feed</div>
             </div>
             
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">Hottest Zone</div>
-              <div className="text-lg font-semibold text-heat-critical">Grocery</div>
-              <div className="text-xs text-muted-foreground">90% activity level</div>
-            </div>
-            
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">Efficiency Score</div>
-              <div className="text-lg font-semibold text-heat-medium">8.2/10</div>
-              <div className="text-xs text-muted-foreground">Layout optimization</div>
-            </div>
-
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-              <div className="text-xs text-muted-foreground">AI Insights</div>
-              <div className="text-xs text-foreground mt-1">Peak hours: 2-4 PM</div>
-              <div className="text-xs text-foreground">Bottleneck: Checkout area</div>
+              <div className="text-xs text-muted-foreground">Processing Status</div>
+              <div className="text-lg font-semibold text-heat-medium">Active</div>
             </div>
           </div>
         </div>

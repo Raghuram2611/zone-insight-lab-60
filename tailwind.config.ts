@@ -70,6 +70,7 @@ export default {
 					'tile-active': 'hsl(var(--camera-tile-active))'
 				},
 				heat: {
+					'very-low': 'hsl(var(--heat-very-low))',
 					low: 'hsl(var(--heat-low))',
 					medium: 'hsl(var(--heat-medium))',
 					high: 'hsl(var(--heat-high))',

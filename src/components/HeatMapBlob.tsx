@@ -11,7 +11,8 @@ export function HeatMapBlob({ x, y, size, intensity, count }: HeatMapBlobProps) 
     if (intensity >= 80) return 'bg-heat-critical';
     if (intensity >= 60) return 'bg-heat-high';
     if (intensity >= 40) return 'bg-heat-medium';
-    return 'bg-heat-low';
+    if (intensity >= 20) return 'bg-heat-low';
+    return 'bg-heat-very-low';
   };
 
   const getOpacity = (intensity: number) => {
