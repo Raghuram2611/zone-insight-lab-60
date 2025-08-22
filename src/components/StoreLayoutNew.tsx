@@ -6,18 +6,18 @@ import { useWebSocket, type WebSocketData } from "@/hooks/useWebSocket";
 
 // Zone positions aligned with actual layout image (percentages)
 const zonePositions = {
-  "Entrance": { x: 85, y: 15 },
-  "ATM": { x: 15, y: 22 },
-  "Office": { x: 15, y: 35 },
-  "Cold Storage": { x: 15, y: 60 },
-  "Household": { x: 30, y: 85 },
-  "Dry Goods": { x: 50, y: 85 },
-  "Coffee Bar": { x: 85, y: 85 },
-  "Beverages": { x: 85, y: 65 },
-  "Automotive": { x: 85, y: 45 },
-  "Chips": { x: 85, y: 35 },
-  "Magazines": { x: 65, y: 15 },
-  "Candy": { x: 45, y: 15 }
+  "Entrance": { x: 95, y: 80 },
+  "ATM": { x: 10, y: 90 },
+  "Office": { x: 10, y: 25 },
+  "Cold Storage": { x: 45, y: 12 },
+  "Household": { x: 8, y: 50 },
+  "Dry Goods": { x: 35, y: 45 },
+  "Coffee Bar": { x: 75, y: 75 },
+  "Beverages": { x: 95, y: 15 },
+  "Automotive": { x: 35, y: 85 },
+  "Chips": { x: 35, y: 60 },
+  "Magazines": { x: 65, y: 85 },
+  "Candy": { x: 35, y: 75 }
 };
 
 interface StoreLayoutProps {
@@ -167,7 +167,7 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
             <img
               src="/Layout/layout.jpg"
               alt="Store Layout"
-              className="absolute inset-0 w-full h-full object-contain opacity-90"
+              className="absolute inset-0 w-full h-full object-cover opacity-90"
             />
             
             {/* Dark overlay for better heat map visibility */}
@@ -220,12 +220,24 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
         <div className="space-y-4">
           <HeatMapLegend />
           
-          <DateTimePicker
-            onDateTimeSelect={handleDateTimeSelect}
-            isHistoricalMode={isHistoricalMode}
-            onToggleMode={handleToggleMode}
-            availableTimestamps={Object.keys(historicalData)}
-          />
+          {/* View History Button */}
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
+            <button
+              onClick={handleToggleMode}
+              className="w-full bg-accent hover:bg-accent/80 text-accent-foreground py-3 px-4 rounded-lg font-medium transition-colors"
+            >
+              {isHistoricalMode ? "Switch to Live" : "View Historical Heatmap"}
+            </button>
+          </div>
+          
+          {isHistoricalMode && (
+            <DateTimePicker
+              onDateTimeSelect={handleDateTimeSelect}
+              isHistoricalMode={isHistoricalMode}
+              onToggleMode={handleToggleMode}
+              availableTimestamps={Object.keys(historicalData)}
+            />
+          )}
           
           {/* Playback Controls */}
           {isHistoricalMode && playbackState.isPlaying && (

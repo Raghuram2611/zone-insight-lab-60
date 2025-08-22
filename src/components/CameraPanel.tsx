@@ -112,15 +112,6 @@ export function CameraPanel({ selectedDateTime }: CameraPanelProps) {
             ))}
           </div>
 
-          {/* View History Button */}
-          <div className="mt-6">
-            <Button
-              variant="outline"
-              className="w-full border-border hover:bg-secondary"
-            >
-              View History
-            </Button>
-          </div>
         </div>
       </div>
 

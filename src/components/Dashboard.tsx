@@ -28,7 +28,7 @@ export function Dashboard() {
       </header>
 
       {/* Main Content - 50/50 Split */}
-      <div className="flex h-[calc(100vh-80px)] overflow-hidden">
+      <div className="flex h-[calc(100vh-80px)]">
         {/* Left Panel - Camera Matrix (50%) */}
         <div className="w-1/2 flex-shrink-0">
           <CameraPanel selectedDateTime={selectedDateTime} />
