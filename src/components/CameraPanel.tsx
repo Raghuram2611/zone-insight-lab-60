@@ -5,21 +5,25 @@ import { CameraTile } from "./CameraTile";
 import { CameraModal } from "./CameraModal";
 
 const mockCameras = [
-  { id: 1, zone: "Entrance", videoSrc: "public//videos//Entrance.mp4" }, // Users can add their MP4 files here
-  { id: 2, zone: "Electronics", videoSrc: "public//videos//Cold Storage.mp4" },
-  { id: 3, zone: "Clothing", videoSrc: undefined },
-  { id: 4, zone: "Food Court", videoSrc: "public//videos//Food.mp4" },
-  { id: 5, zone: "Checkout A", videoSrc: "public//videos//ATM.mp4" },
-  { id: 6, zone: "Checkout B", videoSrc: "public//videos//Office.mp4" },
-  { id: 7, zone: "Storage", videoSrc: undefined },
-  { id: 8, zone: "Parking", videoSrc: undefined },
-  { id: 9, zone: "Security", videoSrc: undefined },
-  { id: 10, zone: "Manager", videoSrc: undefined },
-  { id: 11, zone: "Break Room", videoSrc: undefined },
-  { id: 12, zone: "Loading", videoSrc: undefined },
+  { id: 1, zone: "Entrance", videoSrc: "/videos/Entrance.mp4", cctvUrl: null },
+  { id: 2, zone: "ATM", videoSrc: "/videos/ATM.mp4", cctvUrl: null },
+  { id: 3, zone: "Office", videoSrc: "/videos/Office.mp4", cctvUrl: null },
+  { id: 4, zone: "Cold Storage", videoSrc: "/videos/Cold Storage.mp4", cctvUrl: null },
+  { id: 5, zone: "Household", videoSrc: null, cctvUrl: null },
+  { id: 6, zone: "Dry Goods", videoSrc: null, cctvUrl: null },
+  { id: 7, zone: "Coffee Bar", videoSrc: null, cctvUrl: null },
+  { id: 8, zone: "Beverages", videoSrc: null, cctvUrl: null },
+  { id: 9, zone: "Automotive", videoSrc: null, cctvUrl: null },
+  { id: 10, zone: "Chips", videoSrc: "/videos/Chips.mp4", cctvUrl: null },
+  { id: 11, zone: "Magazines", videoSrc: null, cctvUrl: null },
+  { id: 12, zone: "Candy", videoSrc: null, cctvUrl: null },
 ];
 
-export function CameraPanel() {
+interface CameraPanelProps {
+  selectedDateTime?: string | null;
+}
+
+export function CameraPanel({ selectedDateTime }: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCamera, setSelectedCamera] = useState<typeof mockCameras[0] | null>(null);
   const [activeCamera, setActiveCamera] = useState<number>(1);
@@ -86,6 +90,8 @@ export function CameraPanel() {
                 cameraId={camera.id}
                 zone={camera.zone}
                 videoSrc={camera.videoSrc}
+                cctvUrl={camera.cctvUrl}
+                selectedDateTime={selectedDateTime}
                 isActive={camera.id === activeCamera}
                 isOnline={Math.random() > 0.1}
                 onClick={() => handleCameraClick(camera)}
@@ -130,6 +136,8 @@ export function CameraPanel() {
         cameraId={selectedCamera?.id || 0}
         zone={selectedCamera?.zone || ""}
         videoSrc={selectedCamera?.videoSrc}
+        cctvUrl={selectedCamera?.cctvUrl}
+        selectedDateTime={selectedDateTime}
       />
     </>
   );

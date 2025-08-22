@@ -8,11 +8,13 @@ interface CameraTileProps {
   zone: string;
   isActive?: boolean;
   isOnline?: boolean;
-  videoSrc?: string;
+  videoSrc?: string | null;
+  cctvUrl?: string | null;
+  selectedDateTime?: string | null;
   onClick?: () => void;
 }
 
-export function CameraTile({ cameraId, zone, isActive = false, isOnline = true, videoSrc, onClick }: CameraTileProps) {
+export function CameraTile({ cameraId, zone, isActive = false, isOnline = true, videoSrc, cctvUrl, selectedDateTime, onClick }: CameraTileProps) {
   return (
     <Card 
       className={`
@@ -28,6 +30,8 @@ export function CameraTile({ cameraId, zone, isActive = false, isOnline = true, 
         {/* Video Player */}
         <VideoPlayer 
           videoSrc={videoSrc}
+          cctvUrl={cctvUrl}
+          selectedDateTime={selectedDateTime}
           className="w-full h-full"
           autoPlay={true}
           muted={true}

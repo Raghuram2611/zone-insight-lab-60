@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { CameraPanel } from "./CameraPanel";
-import { StoreLayout } from "./StoreLayout";
+import { StoreLayout } from "./StoreLayoutNew";
 
 export function Dashboard() {
+  const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -28,12 +31,12 @@ export function Dashboard() {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Left Panel - Camera Matrix (50%) */}
         <div className="w-1/2 flex-shrink-0">
-          <CameraPanel />
+          <CameraPanel selectedDateTime={selectedDateTime} />
         </div>
 
         {/* Right Panel - Heat Map Analytics (50%) */}
         <div className="w-1/2">
-          <StoreLayout />
+          <StoreLayout onDateTimeSelect={setSelectedDateTime} />
         </div>
       </div>
     </div>

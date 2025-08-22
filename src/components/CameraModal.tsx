@@ -7,10 +7,12 @@ interface CameraModalProps {
   onClose: () => void;
   cameraId: number;
   zone: string;
-  videoSrc?: string;
+  videoSrc?: string | null;
+  cctvUrl?: string | null;
+  selectedDateTime?: string | null;
 }
 
-export function CameraModal({ isOpen, onClose, cameraId, zone, videoSrc }: CameraModalProps) {
+export function CameraModal({ isOpen, onClose, cameraId, zone, videoSrc, cctvUrl, selectedDateTime }: CameraModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -43,6 +45,8 @@ export function CameraModal({ isOpen, onClose, cameraId, zone, videoSrc }: Camer
         <div className="aspect-video">
           <VideoPlayer 
             videoSrc={videoSrc}
+            cctvUrl={cctvUrl}
+            selectedDateTime={selectedDateTime}
             className="w-full h-full rounded-b-lg"
             autoPlay={true}
             muted={false}
