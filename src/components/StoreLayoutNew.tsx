@@ -4,56 +4,119 @@ import { HeatMapLegend } from "./HeatMapLegend";
 import { DateTimePicker } from "./DateTimePicker";
 import { useWebSocket, type WebSocketData } from "@/hooks/useWebSocket";
 
-// Zone positions on the layout image (percentages)
+// Zone positions aligned with actual layout image (percentages)
 const zonePositions = {
-  "Entrance": { x: 15, y: 20 },
-  "ATM": { x: 25, y: 35 },
-  "Office": { x: 45, y: 25 },
-  "Cold Storage": { x: 65, y: 30 },
-  "Household": { x: 75, y: 45 },
-  "Dry Goods": { x: 30, y: 55 },
-  "Coffee Bar": { x: 50, y: 65 },
-  "Beverages": { x: 70, y: 70 },
-  "Automotive": { x: 20, y: 75 },
-  "Chips": { x: 80, y: 85 },
-  "Magazines": { x: 40, y: 80 },
-  "Candy": { x: 60, y: 50 }
+  "Entrance": { x: 85, y: 15 },
+  "ATM": { x: 15, y: 22 },
+  "Office": { x: 15, y: 35 },
+  "Cold Storage": { x: 15, y: 60 },
+  "Household": { x: 30, y: 85 },
+  "Dry Goods": { x: 50, y: 85 },
+  "Coffee Bar": { x: 85, y: 85 },
+  "Beverages": { x: 85, y: 65 },
+  "Automotive": { x: 85, y: 45 },
+  "Chips": { x: 85, y: 35 },
+  "Magazines": { x: 65, y: 15 },
+  "Candy": { x: 45, y: 15 }
 };
 
 interface StoreLayoutProps {
   onDateTimeSelect?: (datetime: string | null) => void;
 }
 
+interface PlaybackState {
+  isPlaying: boolean;
+  currentIndex: number;
+  timestamps: string[];
+  intervalId: NodeJS.Timeout | null;
+}
+
 export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
   const { liveData, historicalData, isConnected } = useWebSocket();
   const [isHistoricalMode, setIsHistoricalMode] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
+  const [playbackState, setPlaybackState] = useState<PlaybackState>({
+    isPlaying: false,
+    currentIndex: 0,
+    timestamps: [],
+    intervalId: null
+  });
 
   const handleDateTimeSelect = (datetime: string | null) => {
     setSelectedDateTime(datetime);
     onDateTimeSelect?.(datetime);
+    
+    // Start timeline playback from selected time
+    if (datetime && isHistoricalMode) {
+      startTimelinePlayback(datetime);
+    }
   };
 
   const handleToggleMode = () => {
     setIsHistoricalMode(!isHistoricalMode);
     if (isHistoricalMode) {
+      // Stop playback and reset
+      stopTimelinePlayback();
       setSelectedDateTime(null);
       onDateTimeSelect?.(null);
     }
   };
 
+  const startTimelinePlayback = (startTime: string) => {
+    // Stop any existing playback
+    stopTimelinePlayback();
+    
+    // Get all timestamps from selected time onwards
+    const allTimestamps = Object.keys(historicalData).sort();
+    const startIndex = allTimestamps.findIndex(t => t >= startTime);
+    const playbackTimestamps = startIndex >= 0 ? allTimestamps.slice(startIndex) : [];
+    
+    if (playbackTimestamps.length === 0) return;
+    
+    setPlaybackState(prev => ({
+      ...prev,
+      isPlaying: true,
+      currentIndex: 0,
+      timestamps: playbackTimestamps
+    }));
+    
+    // Start interval to play through timestamps
+    const intervalId = setInterval(() => {
+      setPlaybackState(prev => {
+        if (prev.currentIndex >= prev.timestamps.length - 1) {
+          // End of playback, restart from beginning
+          return { ...prev, currentIndex: 0 };
+        }
+        const nextIndex = prev.currentIndex + 1;
+        const nextTimestamp = prev.timestamps[nextIndex];
+        setSelectedDateTime(nextTimestamp);
+        onDateTimeSelect?.(nextTimestamp);
+        return { ...prev, currentIndex: nextIndex };
+      });
+    }, 2000); // 2 second intervals to match backend frequency
+    
+    setPlaybackState(prev => ({ ...prev, intervalId }));
+  };
+
+  const stopTimelinePlayback = () => {
+    setPlaybackState(prev => {
+      if (prev.intervalId) {
+        clearInterval(prev.intervalId);
+      }
+      return {
+        isPlaying: false,
+        currentIndex: 0,
+        timestamps: [],
+        intervalId: null
+      };
+    });
+  };
+
   // Get current data to display
   const getCurrentData = (): WebSocketData | null => {
     if (isHistoricalMode && selectedDateTime) {
-      // Find closest historical data to selected time
-      const timestamps = Object.keys(historicalData).sort();
-      const closestTimestamp = timestamps.reduce((closest, current) => {
-        const currentDiff = Math.abs(new Date(current).getTime() - new Date(selectedDateTime).getTime());
-        const closestDiff = Math.abs(new Date(closest).getTime() - new Date(selectedDateTime).getTime());
-        return currentDiff < closestDiff ? current : closest;
-      }, timestamps[0]);
-      
-      return closestTimestamp ? historicalData[closestTimestamp] : null;
+      // Use exact timestamp if available, otherwise find closest
+      return historicalData[selectedDateTime] || null;
     }
     return liveData;
   };
@@ -87,16 +150,16 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
   const heatMapBlobs = generateHeatMapBlobs();
 
   return (
-    <div className="h-full bg-dashboard-panel p-6">
-      <div className="mb-6">
+    <div className="h-full bg-dashboard-panel p-4 overflow-hidden">
+      <div className="mb-4">
         <h2 className="text-xl font-semibold text-foreground">Live Heat Map Analytics</h2>
         <p className="text-sm text-muted-foreground">
           {isConnected ? "Connected" : "Disconnected"} • 
-          {isHistoricalMode ? "Historical Mode" : "Live Mode"}
+          {isHistoricalMode ? (playbackState.isPlaying ? "Playing Timeline" : "Historical Mode") : "Live Mode"}
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6 h-[calc(100%-100px)]">
+      <div className="grid grid-cols-3 gap-4 h-[calc(100%-80px)]">
         {/* Store layout with background image */}
         <div className="col-span-2">
           <div className="relative w-full h-full bg-muted/10 border border-border rounded-lg overflow-hidden">
@@ -104,7 +167,7 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
             <img
               src="/Layout/layout.jpg"
               alt="Store Layout"
-              className="absolute inset-0 w-full h-full object-cover opacity-80"
+              className="absolute inset-0 w-full h-full object-contain opacity-90"
             />
             
             {/* Dark overlay for better heat map visibility */}
@@ -163,6 +226,22 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
             onToggleMode={handleToggleMode}
             availableTimestamps={Object.keys(historicalData)}
           />
+          
+          {/* Playback Controls */}
+          {isHistoricalMode && playbackState.isPlaying && (
+            <div className="bg-primary/20 border border-primary/40 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground">Timeline Playback</div>
+              <div className="text-sm font-medium text-foreground flex items-center justify-between">
+                <span>Playing from selected time</span>
+                <button
+                  onClick={stopTimelinePlayback}
+                  className="text-xs px-2 py-1 bg-destructive/20 text-destructive rounded border border-destructive/40 hover:bg-destructive/30"
+                >
+                  Stop
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Current data info */}
           {currentData && (

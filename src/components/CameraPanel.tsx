@@ -112,19 +112,14 @@ export function CameraPanel({ selectedDateTime }: CameraPanelProps) {
             ))}
           </div>
 
-          {/* Live Stats */}
-          <div className="mt-6 space-y-3">
-            <div className="text-sm font-medium text-foreground mb-2">Live Statistics</div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-card/30 rounded-lg p-3 border border-border/50">
-                <div className="text-xs text-muted-foreground">Active Cameras</div>
-                <div className="text-lg font-semibold text-primary">12</div>
-              </div>
-              <div className="bg-card/30 rounded-lg p-3 border border-border/50">
-                <div className="text-xs text-muted-foreground">Motion Detected</div>
-                <div className="text-lg font-semibold text-heat-high">4</div>
-              </div>
-            </div>
+          {/* View History Button */}
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              className="w-full border-border hover:bg-secondary"
+            >
+              View History
+            </Button>
           </div>
         </div>
       </div>
