@@ -5,12 +5,12 @@ import { CameraTile } from "./CameraTile";
 import { CameraModal } from "./CameraModal";
 
 const mockCameras = [
-  { id: 1, zone: "Entrance", videoSrc: undefined }, // Users can add their MP4 files here
-  { id: 2, zone: "Electronics", videoSrc: undefined },
+  { id: 1, zone: "Entrance", videoSrc: "public//videos//Entrance.mp4" }, // Users can add their MP4 files here
+  { id: 2, zone: "Electronics", videoSrc: "public//videos//Cold Storage.mp4" },
   { id: 3, zone: "Clothing", videoSrc: undefined },
-  { id: 4, zone: "Food Court", videoSrc: undefined },
-  { id: 5, zone: "Checkout A", videoSrc: undefined },
-  { id: 6, zone: "Checkout B", videoSrc: undefined },
+  { id: 4, zone: "Food Court", videoSrc: "public//videos//Food.mp4" },
+  { id: 5, zone: "Checkout A", videoSrc: "public//videos//ATM.mp4" },
+  { id: 6, zone: "Checkout B", videoSrc: "public//videos//Office.mp4" },
   { id: 7, zone: "Storage", videoSrc: undefined },
   { id: 8, zone: "Parking", videoSrc: undefined },
   { id: 9, zone: "Security", videoSrc: undefined },
