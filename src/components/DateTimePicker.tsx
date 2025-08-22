@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Clock, Play, Square } from "lucide-react";
+import { CalendarIcon, Clock, Play, Square as StopIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -70,7 +70,7 @@ export function DateTimePicker({
         >
           {isHistoricalMode ? (
             <>
-              <Square className="w-4 h-4" />
+              <StopIcon className="w-4 h-4" />
               Stop Historical
             </>
           ) : (
