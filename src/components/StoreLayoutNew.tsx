@@ -220,24 +220,12 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
         <div className="space-y-4">
           <HeatMapLegend />
           
-          {/* View History Button */}
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-            <button
-              onClick={handleToggleMode}
-              className="w-full bg-accent hover:bg-accent/80 text-accent-foreground py-3 px-4 rounded-lg font-medium transition-colors"
-            >
-              {isHistoricalMode ? "Switch to Live" : "View Historical Heatmap"}
-            </button>
-          </div>
-          
-          {isHistoricalMode && (
-            <DateTimePicker
-              onDateTimeSelect={handleDateTimeSelect}
-              isHistoricalMode={isHistoricalMode}
-              onToggleMode={handleToggleMode}
-              availableTimestamps={Object.keys(historicalData)}
-            />
-          )}
+          <DateTimePicker
+            onDateTimeSelect={handleDateTimeSelect}
+            isHistoricalMode={isHistoricalMode}
+            onToggleMode={handleToggleMode}
+            availableTimestamps={Object.keys(historicalData)}
+          />
           
           {/* Playback Controls */}
           {isHistoricalMode && playbackState.isPlaying && (

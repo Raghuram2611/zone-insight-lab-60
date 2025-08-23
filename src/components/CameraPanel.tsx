@@ -112,6 +112,16 @@ export function CameraPanel({ selectedDateTime }: CameraPanelProps) {
             ))}
           </div>
 
+          {/* View Historical Heatmap Button */}
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              className="w-full border-border hover:bg-secondary"
+            >
+              View Historical Heatmap
+            </Button>
+          </div>
+
         </div>
       </div>
 
