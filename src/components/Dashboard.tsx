@@ -4,6 +4,14 @@ import { StoreLayout } from "./StoreLayoutNew";
 
 export function Dashboard() {
   const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
+  const [isHistoricalMode, setIsHistoricalMode] = useState(false);
+
+  const handleToggleMode = () => {
+    setIsHistoricalMode(!isHistoricalMode);
+    if (isHistoricalMode) {
+      setSelectedDateTime(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,12 +39,21 @@ export function Dashboard() {
       <div className="flex min-h-[calc(100vh-80px)]">
         {/* Left Panel - Camera Matrix (50%) */}
         <div className="w-1/2 flex-shrink-0">
-          <CameraPanel selectedDateTime={selectedDateTime} />
+          <CameraPanel 
+            selectedDateTime={selectedDateTime} 
+            onDateTimeSelect={setSelectedDateTime}
+            isHistoricalMode={isHistoricalMode}
+            onToggleMode={handleToggleMode}
+          />
         </div>
 
         {/* Right Panel - Heat Map Analytics (50%) */}
         <div className="w-1/2">
-          <StoreLayout onDateTimeSelect={setSelectedDateTime} />
+          <StoreLayout 
+            onDateTimeSelect={setSelectedDateTime} 
+            selectedDateTime={selectedDateTime}
+            isHistoricalMode={isHistoricalMode}
+          />
         </div>
       </div>
     </div>

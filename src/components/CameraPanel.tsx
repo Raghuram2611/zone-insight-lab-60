@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Grid3X3 } from "lucide-react";
 import { CameraTile } from "./CameraTile";
 import { CameraModal } from "./CameraModal";
+import { DateTimePicker } from "./DateTimePicker";
 
 const mockCameras = [
   { id: 1, zone: "Entrance", videoSrc: "/videos/Entrance.mp4", cctvUrl: null },
@@ -21,9 +22,12 @@ const mockCameras = [
 
 interface CameraPanelProps {
   selectedDateTime?: string | null;
+  onDateTimeSelect: (dateTime: string | null) => void;
+  isHistoricalMode: boolean;
+  onToggleMode: () => void;
 }
 
-export function CameraPanel({ selectedDateTime }: CameraPanelProps) {
+export function CameraPanel({ selectedDateTime, onDateTimeSelect, isHistoricalMode, onToggleMode }: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCamera, setSelectedCamera] = useState<typeof mockCameras[0] | null>(null);
   const [activeCamera, setActiveCamera] = useState<number>(1);
@@ -115,12 +119,32 @@ export function CameraPanel({ selectedDateTime }: CameraPanelProps) {
           {/* View Historical Heatmap Button */}
           <div className="mt-6">
             <Button
+              onClick={onToggleMode}
               variant="outline"
               className="w-full border-border hover:bg-secondary"
             >
-              View Historical Heatmap
+              {isHistoricalMode ? "Switch to Live" : "View Historical Heatmap"}
             </Button>
           </div>
+
+          {/* Date Time Picker */}
+          {isHistoricalMode && (
+            <div className="mt-4">
+              <DateTimePicker
+                onDateTimeSelect={onDateTimeSelect}
+                isHistoricalMode={isHistoricalMode}
+                onToggleMode={onToggleMode}
+                availableTimestamps={[
+                  "2023-12-01T08:00:00",
+                  "2023-12-01T10:15:00",
+                  "2023-12-01T12:30:00",
+                  "2023-12-01T14:45:00",
+                  "2023-12-01T16:20:00",
+                  "2023-12-01T18:15:00"
+                ]}
+              />
+            </div>
+          )}
 
         </div>
       </div>

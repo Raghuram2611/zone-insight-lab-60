@@ -21,7 +21,9 @@ const zonePositions = {
 };
 
 interface StoreLayoutProps {
-  onDateTimeSelect?: (datetime: string | null) => void;
+  onDateTimeSelect: (dateTime: string | null) => void;
+  selectedDateTime?: string | null;
+  isHistoricalMode: boolean;
 }
 
 interface PlaybackState {
@@ -31,10 +33,8 @@ interface PlaybackState {
   intervalId: NodeJS.Timeout | null;
 }
 
-export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
+export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMode }: StoreLayoutProps) {
   const { liveData, historicalData, isConnected } = useWebSocket();
-  const [isHistoricalMode, setIsHistoricalMode] = useState(false);
-  const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     isPlaying: false,
     currentIndex: 0,
@@ -42,31 +42,19 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
     intervalId: null
   });
 
-  const handleDateTimeSelect = (datetime: string | null) => {
-    setSelectedDateTime(datetime);
-    onDateTimeSelect?.(datetime);
+  const handleDateTimeSelect = (dateTime: string | null) => {
+    onDateTimeSelect(dateTime);
     
-    // Start timeline playback from selected time
-    if (datetime && isHistoricalMode) {
-      startTimelinePlayback(datetime);
-    }
-  };
-
-  const handleToggleMode = () => {
-    setIsHistoricalMode(!isHistoricalMode);
-    if (isHistoricalMode) {
-      // Stop playback and reset
+    if (dateTime) {
+      startTimelinePlayback(dateTime);
+    } else {
       stopTimelinePlayback();
-      setSelectedDateTime(null);
-      onDateTimeSelect?.(null);
     }
   };
 
   const startTimelinePlayback = (startTime: string) => {
-    // Stop any existing playback
     stopTimelinePlayback();
     
-    // Get all timestamps from selected time onwards
     const allTimestamps = Object.keys(historicalData).sort();
     const startIndex = allTimestamps.findIndex(t => t >= startTime);
     const playbackTimestamps = startIndex >= 0 ? allTimestamps.slice(startIndex) : [];
@@ -80,20 +68,17 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
       timestamps: playbackTimestamps
     }));
     
-    // Start interval to play through timestamps
     const intervalId = setInterval(() => {
       setPlaybackState(prev => {
         if (prev.currentIndex >= prev.timestamps.length - 1) {
-          // End of playback, restart from beginning
           return { ...prev, currentIndex: 0 };
         }
         const nextIndex = prev.currentIndex + 1;
         const nextTimestamp = prev.timestamps[nextIndex];
-        setSelectedDateTime(nextTimestamp);
-        onDateTimeSelect?.(nextTimestamp);
+        onDateTimeSelect(nextTimestamp);
         return { ...prev, currentIndex: nextIndex };
       });
-    }, 2000); // 2 second intervals to match backend frequency
+    }, 2000);
     
     setPlaybackState(prev => ({ ...prev, intervalId }));
   };
@@ -112,10 +97,8 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
     });
   };
 
-  // Get current data to display
   const getCurrentData = (): WebSocketData | null => {
     if (isHistoricalMode && selectedDateTime) {
-      // Use exact timestamp if available, otherwise find closest
       return historicalData[selectedDateTime] || null;
     }
     return liveData;
@@ -127,15 +110,15 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
   const generateHeatMapBlobs = () => {
     if (!currentData?.zones) return [];
 
-    return Object.entries(currentData.zones).map(([zoneName, data]) => {
+    return Object.entries(currentData.zones).map(([zoneName, data]: [string, any]) => {
       const position = zonePositions[zoneName as keyof typeof zonePositions];
       if (!position) return null;
 
       // Calculate size based on population (min 20, max 80)
-      const size = Math.max(20, Math.min(80, data.population * 2));
+      const size = Math.max(20, Math.min(80, (data.population || 0) * 2));
       
       // Convert heat_score to intensity (0-100)
-      const intensity = Math.round(data.heat_score * 100);
+      const intensity = Math.round((data.heat_score || 0) * 100);
 
       return {
         x: position.x,
@@ -219,13 +202,6 @@ export function StoreLayout({ onDateTimeSelect }: StoreLayoutProps) {
         {/* Legend & Controls */}
         <div className="space-y-4">
           <HeatMapLegend />
-          
-          <DateTimePicker
-            onDateTimeSelect={handleDateTimeSelect}
-            isHistoricalMode={isHistoricalMode}
-            onToggleMode={handleToggleMode}
-            availableTimestamps={Object.keys(historicalData)}
-          />
           
           {/* Playback Controls */}
           {isHistoricalMode && playbackState.isPlaying && (
