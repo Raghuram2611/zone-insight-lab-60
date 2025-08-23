@@ -61,6 +61,9 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
     
     if (playbackTimestamps.length === 0) return;
     
+    // Set initial state with the first timestamp
+    onDateTimeSelect(playbackTimestamps[0]);
+    
     setPlaybackState(prev => ({
       ...prev,
       isPlaying: true,
@@ -68,19 +71,30 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
       timestamps: playbackTimestamps
     }));
     
-    const intervalId = setInterval(() => {
-      setPlaybackState(prev => {
-        if (prev.currentIndex >= prev.timestamps.length - 1) {
-          return { ...prev, currentIndex: 0 };
-        }
-        const nextIndex = prev.currentIndex + 1;
-        const nextTimestamp = prev.timestamps[nextIndex];
-        onDateTimeSelect(nextTimestamp);
-        return { ...prev, currentIndex: nextIndex };
-      });
-    }, 2000);
-    
-    setPlaybackState(prev => ({ ...prev, intervalId }));
+    // Start playback from the second timestamp if available
+    if (playbackTimestamps.length > 1) {
+      const intervalId = setInterval(() => {
+        setPlaybackState(prev => {
+          const nextIndex = prev.currentIndex + 1;
+          
+          // If we've reached the end, stop playback
+          if (nextIndex >= prev.timestamps.length) {
+            clearInterval(prev.intervalId!);
+            return {
+              ...prev,
+              isPlaying: false,
+              intervalId: null
+            };
+          }
+          
+          const nextTimestamp = prev.timestamps[nextIndex];
+          onDateTimeSelect(nextTimestamp);
+          return { ...prev, currentIndex: nextIndex };
+        });
+      }, 1500); // Slightly faster playback
+      
+      setPlaybackState(prev => ({ ...prev, intervalId }));
+    }
   };
 
   const stopTimelinePlayback = () => {
@@ -207,14 +221,19 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
           {isHistoricalMode && playbackState.isPlaying && (
             <div className="bg-primary/20 border border-primary/40 rounded-lg p-3">
               <div className="text-xs text-muted-foreground">Timeline Playback</div>
-              <div className="text-sm font-medium text-foreground flex items-center justify-between">
-                <span>Playing from selected time</span>
-                <button
-                  onClick={stopTimelinePlayback}
-                  className="text-xs px-2 py-1 bg-destructive/20 text-destructive rounded border border-destructive/40 hover:bg-destructive/30"
-                >
-                  Stop
-                </button>
+              <div className="text-sm font-medium text-foreground">
+                <div className="flex items-center justify-between mb-1">
+                  <span>Playing timeline</span>
+                  <button
+                    onClick={stopTimelinePlayback}
+                    className="text-xs px-2 py-1 bg-destructive/20 text-destructive rounded border border-destructive/40 hover:bg-destructive/30"
+                  >
+                    Stop
+                  </button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {playbackState.currentIndex + 1} of {playbackState.timestamps.length} timestamps
+                </div>
               </div>
             </div>
           )}
