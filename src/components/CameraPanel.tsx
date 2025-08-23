@@ -25,9 +25,10 @@ interface CameraPanelProps {
   onDateTimeSelect: (dateTime: string | null) => void;
   isHistoricalMode: boolean;
   onToggleMode: () => void;
+  timelineProgress?: { current: number; total: number } | null;
 }
 
-export function CameraPanel({ selectedDateTime, onDateTimeSelect, isHistoricalMode, onToggleMode }: CameraPanelProps) {
+export function CameraPanel({ selectedDateTime, onDateTimeSelect, isHistoricalMode, onToggleMode, timelineProgress }: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCamera, setSelectedCamera] = useState<typeof mockCameras[0] | null>(null);
   const [activeCamera, setActiveCamera] = useState<number>(1);
@@ -143,6 +144,25 @@ export function CameraPanel({ selectedDateTime, onDateTimeSelect, isHistoricalMo
                   "2023-12-01T18:15:00"
                 ]}
               />
+            </div>
+          )}
+
+          {/* Timeline Progress */}
+          {timelineProgress && isHistoricalMode && (
+            <div className="mt-4 bg-primary/10 border border-primary/30 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">Playback Progress</div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-foreground">{timelineProgress.current} / {timelineProgress.total}</span>
+                <span className="text-muted-foreground">
+                  {Math.round((timelineProgress.current / timelineProgress.total) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-muted/30 rounded-full h-1.5 mt-2">
+                <div 
+                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(timelineProgress.current / timelineProgress.total) * 100}%` }}
+                />
+              </div>
             </div>
           )}
 

@@ -24,6 +24,7 @@ interface StoreLayoutProps {
   onDateTimeSelect: (dateTime: string | null) => void;
   selectedDateTime?: string | null;
   isHistoricalMode: boolean;
+  onTimelineUpdate?: (currentTime: string, progress: { current: number; total: number }) => void;
 }
 
 interface PlaybackState {
@@ -33,7 +34,7 @@ interface PlaybackState {
   intervalId: NodeJS.Timeout | null;
 }
 
-export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMode }: StoreLayoutProps) {
+export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMode, onTimelineUpdate }: StoreLayoutProps) {
   const { liveData, historicalData, isConnected } = useWebSocket();
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     isPlaying: false,
@@ -52,17 +53,30 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
     }
   };
 
+  // Get all timestamps for the selected date
+  const getTimestampsForDate = (selectedDateTime: string) => {
+    const selectedDate = selectedDateTime.split('T')[0]; // Get just the date part
+    return Object.keys(historicalData)
+      .filter(timestamp => timestamp.startsWith(selectedDate))
+      .sort();
+  };
+
   const startTimelinePlayback = (startTime: string) => {
     stopTimelinePlayback();
     
-    const allTimestamps = Object.keys(historicalData).sort();
-    const startIndex = allTimestamps.findIndex(t => t >= startTime);
-    const playbackTimestamps = startIndex >= 0 ? allTimestamps.slice(startIndex) : [];
+    // Get all timestamps for the selected date, starting from the selected time
+    const dateTimestamps = getTimestampsForDate(startTime);
+    const startIndex = dateTimestamps.findIndex(t => t >= startTime);
+    const playbackTimestamps = startIndex >= 0 ? dateTimestamps.slice(startIndex) : [];
     
     if (playbackTimestamps.length === 0) return;
     
-    // Set initial state with the first timestamp
-    onDateTimeSelect(playbackTimestamps[0]);
+    // Set initial state with the exact selected timestamp or closest available
+    const initialTimestamp = playbackTimestamps[0];
+    onDateTimeSelect(initialTimestamp);
+    
+    // Notify parent component about timeline update
+    onTimelineUpdate?.(initialTimestamp, { current: 1, total: playbackTimestamps.length });
     
     setPlaybackState(prev => ({
       ...prev,
@@ -80,6 +94,8 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
           // If we've reached the end, stop playback
           if (nextIndex >= prev.timestamps.length) {
             clearInterval(prev.intervalId!);
+            onTimelineUpdate?.(prev.timestamps[prev.timestamps.length - 1], 
+              { current: prev.timestamps.length, total: prev.timestamps.length });
             return {
               ...prev,
               isPlaying: false,
@@ -89,9 +105,10 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
           
           const nextTimestamp = prev.timestamps[nextIndex];
           onDateTimeSelect(nextTimestamp);
+          onTimelineUpdate?.(nextTimestamp, { current: nextIndex + 1, total: prev.timestamps.length });
           return { ...prev, currentIndex: nextIndex };
         });
-      }, 1500); // Slightly faster playback
+      }, 2000); // 2 seconds per timestamp for better viewing
       
       setPlaybackState(prev => ({ ...prev, intervalId }));
     }
@@ -223,7 +240,7 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
               <div className="text-xs text-muted-foreground">Timeline Playback</div>
               <div className="text-sm font-medium text-foreground">
                 <div className="flex items-center justify-between mb-1">
-                  <span>Playing timeline</span>
+                  <span>Playing from selected time</span>
                   <button
                     onClick={stopTimelinePlayback}
                     className="text-xs px-2 py-1 bg-destructive/20 text-destructive rounded border border-destructive/40 hover:bg-destructive/30"
@@ -231,8 +248,12 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
                     Stop
                   </button>
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground mb-1">
                   {playbackState.currentIndex + 1} of {playbackState.timestamps.length} timestamps
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Current: {playbackState.timestamps[playbackState.currentIndex] && 
+                    new Date(playbackState.timestamps[playbackState.currentIndex]).toLocaleTimeString()}
                 </div>
               </div>
             </div>

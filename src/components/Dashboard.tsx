@@ -5,12 +5,18 @@ import { StoreLayout } from "./StoreLayoutNew";
 export function Dashboard() {
   const [selectedDateTime, setSelectedDateTime] = useState<string | null>(null);
   const [isHistoricalMode, setIsHistoricalMode] = useState(false);
+  const [timelineProgress, setTimelineProgress] = useState<{ current: number; total: number } | null>(null);
 
   const handleToggleMode = () => {
     setIsHistoricalMode(!isHistoricalMode);
     if (isHistoricalMode) {
       setSelectedDateTime(null);
+      setTimelineProgress(null);
     }
+  };
+
+  const handleTimelineUpdate = (currentTime: string, progress: { current: number; total: number }) => {
+    setTimelineProgress(progress);
   };
 
   return (
@@ -44,6 +50,7 @@ export function Dashboard() {
             onDateTimeSelect={setSelectedDateTime}
             isHistoricalMode={isHistoricalMode}
             onToggleMode={handleToggleMode}
+            timelineProgress={timelineProgress}
           />
         </div>
 
@@ -53,6 +60,7 @@ export function Dashboard() {
             onDateTimeSelect={setSelectedDateTime} 
             selectedDateTime={selectedDateTime}
             isHistoricalMode={isHistoricalMode}
+            onTimelineUpdate={handleTimelineUpdate}
           />
         </div>
       </div>
