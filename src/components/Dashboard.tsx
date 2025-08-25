@@ -25,13 +25,20 @@ export function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                Store Analytics Dashboard
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Real-time customer traffic monitoring and heat map analysis
-              </p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  Smart Store
+                </h1>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>powered by</span>
+                  <img 
+                    src="/logo.png" 
+                    alt="Company Logo" 
+                    className="h-5 w-auto"
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />

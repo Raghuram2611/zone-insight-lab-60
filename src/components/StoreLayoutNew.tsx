@@ -2,22 +2,23 @@ import { useState } from "react";
 import { HeatMapBlob } from "./HeatMapBlob";
 import { HeatMapLegend } from "./HeatMapLegend";
 import { DateTimePicker } from "./DateTimePicker";
-import { useWebSocket, type WebSocketData } from "@/hooks/useWebSocket";
+import { useZoneData, type TimeSeriesData } from "@/hooks/useZoneData";
 
 // Zone positions aligned with actual layout image (percentages)
 const zonePositions = {
-  "Entrance": { x: 95, y: 80 },
-  "ATM": { x: 10, y: 90 },
-  "Office": { x: 10, y: 25 },
-  "Cold Storage": { x: 45, y: 12 },
-  "Household": { x: 8, y: 50 },
-  "Dry Goods": { x: 35, y: 45 },
-  "Coffee Bar": { x: 75, y: 75 },
-  "Beverages": { x: 95, y: 15 },
-  "Automotive": { x: 35, y: 85 },
-  "Chips": { x: 35, y: 60 },
-  "Magazines": { x: 65, y: 85 },
-  "Candy": { x: 35, y: 75 }
+  "Zone A": { x: 25, y: 30 },
+  "Zone B": { x: 75, y: 30 },
+  "Zone C": { x: 25, y: 70 },
+  "Zone D": { x: 75, y: 70 },
+  // Future zones (E-L) can be added here
+  "Zone E": { x: 50, y: 20 },
+  "Zone F": { x: 50, y: 80 },
+  "Zone G": { x: 15, y: 50 },
+  "Zone H": { x: 85, y: 50 },
+  "Zone I": { x: 35, y: 45 },
+  "Zone J": { x: 65, y: 45 },
+  "Zone K": { x: 35, y: 55 },
+  "Zone L": { x: 65, y: 55 }
 };
 
 interface StoreLayoutProps {
@@ -35,7 +36,7 @@ interface PlaybackState {
 }
 
 export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMode, onTimelineUpdate }: StoreLayoutProps) {
-  const { liveData, historicalData, isConnected } = useWebSocket();
+  const { processedData, isLoading, error } = useZoneData();
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     isPlaying: false,
     currentIndex: 0,
@@ -56,7 +57,7 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
   // Get all timestamps for the selected date
   const getTimestampsForDate = (selectedDateTime: string) => {
     const selectedDate = selectedDateTime.split('T')[0]; // Get just the date part
-    return Object.keys(historicalData)
+    return Object.keys(processedData)
       .filter(timestamp => timestamp.startsWith(selectedDate))
       .sort();
   };
@@ -128,11 +129,13 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
     });
   };
 
-  const getCurrentData = (): WebSocketData | null => {
+  const getCurrentData = () => {
     if (isHistoricalMode && selectedDateTime) {
-      return historicalData[selectedDateTime] || null;
+      return processedData[selectedDateTime] || null;
     }
-    return liveData;
+    // For live mode, get the latest timestamp
+    const latestTimestamp = Object.keys(processedData).sort().pop();
+    return latestTimestamp ? processedData[latestTimestamp] : null;
   };
 
   const currentData = getCurrentData();
@@ -145,11 +148,14 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
       const position = zonePositions[zoneName as keyof typeof zonePositions];
       if (!position) return null;
 
-      // Calculate size based on population (min 20, max 80)
-      const size = Math.max(20, Math.min(80, (data.population || 0) * 2));
+      // Calculate size based on count (min 20, max 80)
+      const size = Math.max(20, Math.min(80, (data.population || 0) * 3));
       
-      // Convert heat_score to intensity (0-100)
-      const intensity = Math.round((data.heat_score || 0) * 100);
+      // Calculate intensity based on count and crowding
+      let intensity = Math.round((data.heat_score || 0) * 100);
+      if (data.is_crowded) {
+        intensity = Math.max(intensity, 80); // Ensure crowded areas are highly visible
+      }
 
       return {
         x: position.x,
@@ -168,7 +174,7 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
       <div className="mb-4">
         <h2 className="text-xl font-semibold text-foreground">Live Heat Map Analytics</h2>
         <p className="text-sm text-muted-foreground">
-          {isConnected ? "Connected" : "Disconnected"} • 
+          {error ? "Error loading data" : (isLoading ? "Loading..." : "Data loaded")} • 
           {isHistoricalMode ? (playbackState.isPlaying ? "Playing Timeline" : "Historical Mode") : "Live Mode"}
         </p>
       </div>
@@ -218,12 +224,12 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
               ))}
             </div>
 
-            {/* Connection status overlay */}
-            {!isConnected && (
+            {/* Error status overlay */}
+            {error && (
               <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                 <div className="text-center space-y-2">
-                  <div className="text-destructive font-medium">WebSocket Disconnected</div>
-                  <div className="text-sm text-muted-foreground">Attempting to reconnect...</div>
+                  <div className="text-destructive font-medium">Data Load Error</div>
+                  <div className="text-sm text-muted-foreground">{error}</div>
                 </div>
               </div>
             )}
