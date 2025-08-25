@@ -1,168 +1,91 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HeatMapBlob } from "./HeatMapBlob";
 import { HeatMapLegend } from "./HeatMapLegend";
-import { DateTimePicker } from "./DateTimePicker";
-import { useZoneData, type TimeSeriesData } from "@/hooks/useZoneData";
+import { useWebSocketReplay, type ZoneData } from "@/hooks/useWebSocketReplay";
+import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
 
 // Zone positions aligned with actual layout image (percentages)
-const zonePositions = {
-  "Zone A": { x: 25, y: 30 },
-  "Zone B": { x: 75, y: 30 },
-  "Zone C": { x: 25, y: 70 },
-  "Zone D": { x: 75, y: 70 },
-  // Future zones (E-L) can be added here
-  "Zone E": { x: 50, y: 20 },
-  "Zone F": { x: 50, y: 80 },
-  "Zone G": { x: 15, y: 50 },
-  "Zone H": { x: 85, y: 50 },
-  "Zone I": { x: 35, y: 45 },
-  "Zone J": { x: 65, y: 45 },
-  "Zone K": { x: 35, y: 55 },
-  "Zone L": { x: 65, y: 55 }
+const getZonePositions = (zones: string[]) => {
+  const positions: Record<string, { x: number; y: number }> = {};
+  const basePositions = [
+    { x: 25, y: 30 }, { x: 75, y: 30 }, { x: 25, y: 70 }, { x: 75, y: 70 },
+    { x: 50, y: 20 }, { x: 50, y: 80 }, { x: 15, y: 50 }, { x: 85, y: 50 },
+    { x: 35, y: 45 }, { x: 65, y: 45 }, { x: 35, y: 55 }, { x: 65, y: 55 }
+  ];
+  
+  zones.forEach((zone, index) => {
+    if (index < basePositions.length) {
+      positions[zone] = basePositions[index];
+    }
+  });
+  
+  return positions;
 };
 
 interface StoreLayoutProps {
-  onDateTimeSelect: (dateTime: string | null) => void;
-  selectedDateTime?: string | null;
-  isHistoricalMode: boolean;
-  onTimelineUpdate?: (currentTime: string, progress: { current: number; total: number }) => void;
+  selectedTime: string | null;
+  selectedZones: string[];
+  onReplayStart?: (timeString: string) => void;
+  onReplayStop?: () => void;
+  isReplaying: boolean;
 }
 
-interface PlaybackState {
-  isPlaying: boolean;
-  currentIndex: number;
-  timestamps: string[];
-  intervalId: NodeJS.Timeout | null;
-}
+export function StoreLayout({ selectedTime, selectedZones, onReplayStart, onReplayStop, isReplaying }: StoreLayoutProps) {
+  const { zones, isLoading: zonesLoading } = useZoneDiscovery();
+  const { connect, disconnect, isConnected, currentData, error } = useWebSocketReplay();
+  const [zonePositions, setZonePositions] = useState<Record<string, { x: number; y: number }>>({});
 
-export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMode, onTimelineUpdate }: StoreLayoutProps) {
-  const { processedData, isLoading, error } = useZoneData();
-  const [playbackState, setPlaybackState] = useState<PlaybackState>({
-    isPlaying: false,
-    currentIndex: 0,
-    timestamps: [],
-    intervalId: null
-  });
+  // Update zone positions when zones are loaded
+  useEffect(() => {
+    if (zones.length > 0) {
+      setZonePositions(getZonePositions(zones));
+    }
+  }, [zones]);
 
-  const handleDateTimeSelect = (dateTime: string | null) => {
-    onDateTimeSelect(dateTime);
-    
-    if (dateTime) {
-      startTimelinePlayback(dateTime);
+  // Start WebSocket replay when time is selected
+  useEffect(() => {
+    if (selectedTime && selectedZones.length > 0 && isReplaying) {
+      connect({
+        start: selectedTime,
+        zones: selectedZones,
+        speed: 1.0
+      });
     } else {
-      stopTimelinePlayback();
+      disconnect();
     }
+  }, [selectedTime, selectedZones, isReplaying, connect, disconnect]);
+
+  const handleStopReplay = () => {
+    disconnect();
+    onReplayStop?.();
   };
 
-  // Get all timestamps for the selected date
-  const getTimestampsForDate = (selectedDateTime: string) => {
-    const selectedDate = selectedDateTime.split('T')[0]; // Get just the date part
-    return Object.keys(processedData)
-      .filter(timestamp => timestamp.startsWith(selectedDate))
-      .sort();
-  };
-
-  const startTimelinePlayback = (startTime: string) => {
-    stopTimelinePlayback();
-    
-    // Get all timestamps for the selected date, starting from the selected time
-    const dateTimestamps = getTimestampsForDate(startTime);
-    const startIndex = dateTimestamps.findIndex(t => t >= startTime);
-    const playbackTimestamps = startIndex >= 0 ? dateTimestamps.slice(startIndex) : [];
-    
-    if (playbackTimestamps.length === 0) return;
-    
-    // Set initial state with the exact selected timestamp or closest available
-    const initialTimestamp = playbackTimestamps[0];
-    onDateTimeSelect(initialTimestamp);
-    
-    // Notify parent component about timeline update
-    onTimelineUpdate?.(initialTimestamp, { current: 1, total: playbackTimestamps.length });
-    
-    setPlaybackState(prev => ({
-      ...prev,
-      isPlaying: true,
-      currentIndex: 0,
-      timestamps: playbackTimestamps
-    }));
-    
-    // Start playback from the second timestamp if available
-    if (playbackTimestamps.length > 1) {
-      const intervalId = setInterval(() => {
-        setPlaybackState(prev => {
-          const nextIndex = prev.currentIndex + 1;
-          
-          // If we've reached the end, stop playback
-          if (nextIndex >= prev.timestamps.length) {
-            clearInterval(prev.intervalId!);
-            onTimelineUpdate?.(prev.timestamps[prev.timestamps.length - 1], 
-              { current: prev.timestamps.length, total: prev.timestamps.length });
-            return {
-              ...prev,
-              isPlaying: false,
-              intervalId: null
-            };
-          }
-          
-          const nextTimestamp = prev.timestamps[nextIndex];
-          onDateTimeSelect(nextTimestamp);
-          onTimelineUpdate?.(nextTimestamp, { current: nextIndex + 1, total: prev.timestamps.length });
-          return { ...prev, currentIndex: nextIndex };
-        });
-      }, 2000); // 2 seconds per timestamp for better viewing
-      
-      setPlaybackState(prev => ({ ...prev, intervalId }));
-    }
-  };
-
-  const stopTimelinePlayback = () => {
-    setPlaybackState(prev => {
-      if (prev.intervalId) {
-        clearInterval(prev.intervalId);
-      }
-      return {
-        isPlaying: false,
-        currentIndex: 0,
-        timestamps: [],
-        intervalId: null
-      };
-    });
-  };
-
-  const getCurrentData = () => {
-    if (isHistoricalMode && selectedDateTime) {
-      return processedData[selectedDateTime] || null;
-    }
-    // For live mode, get the latest timestamp
-    const latestTimestamp = Object.keys(processedData).sort().pop();
-    return latestTimestamp ? processedData[latestTimestamp] : null;
-  };
-
-  const currentData = getCurrentData();
-
-  // Generate heat map blobs from current data
+  // Generate heat map blobs from WebSocket data
   const generateHeatMapBlobs = () => {
-    if (!currentData?.zones) return [];
+    if (!currentData?.zones || Object.keys(zonePositions).length === 0) return [];
 
-    return Object.entries(currentData.zones).map(([zoneName, data]: [string, any]) => {
-      const position = zonePositions[zoneName as keyof typeof zonePositions];
+    return Object.entries(currentData.zones).map(([zoneName, data]: [string, ZoneData]) => {
+      const position = zonePositions[zoneName];
       if (!position) return null;
 
-      // Calculate size based on count (min 20, max 80)
-      const size = Math.max(20, Math.min(80, (data.population || 0) * 3));
+      // Calculate size based on population (min 20, max 100)
+      const size = Math.max(20, Math.min(100, Math.sqrt(data.population) * 10));
       
-      // Calculate intensity based on count and crowding
-      let intensity = Math.round((data.heat_score || 0) * 100);
-      if (data.is_crowded) {
-        intensity = Math.max(intensity, 80); // Ensure crowded areas are highly visible
-      }
+      // Convert heat_score (0-1) to intensity (0-100)
+      const intensity = Math.round(data.heat_score * 100);
+      
+      // Check if crowded (population > 12)
+      const isCrowded = data.population > 12;
 
       return {
         x: position.x,
         y: position.y,
-        size,
-        intensity,
-        zoneName
+        size: isCrowded ? Math.max(size, 60) : size, // Ensure crowded areas are visible
+        intensity: isCrowded ? Math.max(intensity, 80) : intensity,
+        zoneName,
+        population: data.population,
+        avgDwell: data.avg_dwell,
+        isCrowded
       };
     }).filter(Boolean);
   };
@@ -172,10 +95,10 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
   return (
     <div className="h-full bg-dashboard-panel p-4 overflow-hidden">
       <div className="mb-4">
-        <h2 className="text-xl font-semibold text-foreground">Live Heat Map Analytics</h2>
+        <h2 className="text-xl font-semibold text-foreground">Real-time Heat Map Analytics</h2>
         <p className="text-sm text-muted-foreground">
-          {error ? "Error loading data" : (isLoading ? "Loading..." : "Data loaded")} • 
-          {isHistoricalMode ? (playbackState.isPlaying ? "Playing Timeline" : "Historical Mode") : "Live Mode"}
+          {error ? "WebSocket Error" : (zonesLoading ? "Loading zones..." : `${zones.length} zones available`)} • 
+          {isReplaying ? (isConnected ? "Replay Active" : "Connecting...") : "Standby"}
         </p>
       </div>
 
@@ -197,13 +120,27 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
             <div className="absolute inset-0">
               {heatMapBlobs.map((blob, index) => (
                 blob && (
-                  <HeatMapBlob
-                    key={`${blob.zoneName}-${index}`}
-                    x={blob.x}
-                    y={blob.y}
-                    size={blob.size}
-                    intensity={blob.intensity}
-                  />
+                  <div key={`${blob.zoneName}-${index}`} className="relative">
+                    <HeatMapBlob
+                      x={blob.x}
+                      y={blob.y}
+                      size={blob.size}
+                      intensity={blob.intensity}
+                    />
+                    {/* Zone info tooltip */}
+                    <div
+                      className="absolute transform -translate-x-1/2 -translate-y-full text-xs bg-black/80 text-white px-2 py-1 rounded pointer-events-none opacity-0 hover:opacity-100 transition-opacity"
+                      style={{
+                        left: `${blob.x}%`,
+                        top: `${blob.y}%`,
+                      }}
+                    >
+                      <div>Zone {blob.zoneName}</div>
+                      <div>People: {blob.population}</div>
+                      <div>Dwell: {blob.avgDwell?.toFixed(1)}s</div>
+                      {blob.isCrowded && <div className="text-red-400">CROWDED</div>}
+                    </div>
+                  </div>
                 )
               ))}
             </div>
@@ -240,26 +177,30 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
         <div className="space-y-4">
           <HeatMapLegend />
           
-          {/* Playback Controls */}
-          {isHistoricalMode && playbackState.isPlaying && (
+          {/* Replay Status */}
+          {isReplaying && (
             <div className="bg-primary/20 border border-primary/40 rounded-lg p-3">
-              <div className="text-xs text-muted-foreground">Timeline Playback</div>
+              <div className="text-xs text-muted-foreground">WebSocket Replay</div>
               <div className="text-sm font-medium text-foreground">
                 <div className="flex items-center justify-between mb-1">
-                  <span>Playing from selected time</span>
+                  <span className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </span>
                   <button
-                    onClick={stopTimelinePlayback}
+                    onClick={handleStopReplay}
                     className="text-xs px-2 py-1 bg-destructive/20 text-destructive rounded border border-destructive/40 hover:bg-destructive/30"
                   >
                     Stop
                   </button>
                 </div>
-                <div className="text-xs text-muted-foreground mb-1">
-                  {playbackState.currentIndex + 1} of {playbackState.timestamps.length} timestamps
-                </div>
+                {selectedTime && (
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Started: {selectedTime}
+                  </div>
+                )}
                 <div className="text-xs text-muted-foreground">
-                  Current: {playbackState.timestamps[playbackState.currentIndex] && 
-                    new Date(playbackState.timestamps[playbackState.currentIndex]).toLocaleTimeString()}
+                  Zones: {selectedZones.join(', ')}
                 </div>
               </div>
             </div>
@@ -268,15 +209,20 @@ export function StoreLayout({ onDateTimeSelect, selectedDateTime, isHistoricalMo
           {/* Current data info */}
           {currentData && (
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-              <div className="text-xs text-muted-foreground mb-2">Current Data</div>
+              <div className="text-xs text-muted-foreground mb-2">Current Frame</div>
               <div className="text-sm font-medium text-foreground">
-                Store: {currentData.store_id}
+                Time: {currentData.timestamp}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(currentData.timestamp).toLocaleString()}
+              <div className="text-xs text-muted-foreground mt-2">
+                Active Zones: {Object.keys(currentData.zones).length}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Zones: {Object.keys(currentData.zones).length}
+              <div className="mt-2 space-y-1">
+                {Object.entries(currentData.zones).map(([zone, data]) => (
+                  <div key={zone} className="text-xs flex justify-between">
+                    <span>Zone {zone}:</span>
+                    <span>{data.population} people</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
