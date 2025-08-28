@@ -1,183 +1,165 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Grid3X3 } from "lucide-react";
-import { CameraTile } from "./CameraTile";
+import { ChevronLeft, ChevronRight, Video, VideoOff } from "lucide-react";
+import { Button } from "./ui/button";
 import { CameraModal } from "./CameraModal";
-import { DateTimePicker } from "./DateTimePicker";
-
-const mockCameras = [
-  { id: 1, zone: "Entrance", videoSrc: "/videos/Entrance.mp4", cctvUrl: null },
-  { id: 2, zone: "ATM", videoSrc: "/videos/ATM.mp4", cctvUrl: null },
-  { id: 3, zone: "Office", videoSrc: "/videos/Office.mp4", cctvUrl: null },
-  { id: 4, zone: "Cold Storage", videoSrc: "/videos/Cold Storage.mp4", cctvUrl: null },
-  { id: 5, zone: "Household", videoSrc: null, cctvUrl: null },
-  { id: 6, zone: "Dry Goods", videoSrc: null, cctvUrl: null },
-  { id: 7, zone: "Coffee Bar", videoSrc: null, cctvUrl: null },
-  { id: 8, zone: "Beverages", videoSrc: null, cctvUrl: null },
-  { id: 9, zone: "Automotive", videoSrc: null, cctvUrl: null },
-  { id: 10, zone: "Chips", videoSrc: "/videos/Chips.mp4", cctvUrl: null },
-  { id: 11, zone: "Magazines", videoSrc: null, cctvUrl: null },
-  { id: 12, zone: "Candy", videoSrc: null, cctvUrl: null },
-];
 
 interface CameraPanelProps {
-  selectedDateTime?: string | null;
-  onDateTimeSelect: (dateTime: string | null) => void;
-  isHistoricalMode: boolean;
-  onToggleMode: () => void;
-  timelineProgress?: { current: number; total: number } | null;
+  zones: string[];
+  selectedZones: string[];
+  onZoneToggle: (zone: string) => void;
+  baseUrl?: string;
 }
 
-export function CameraPanel({ selectedDateTime, onDateTimeSelect, isHistoricalMode, onToggleMode, timelineProgress }: CameraPanelProps) {
+export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "http://localhost:8000" }: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedCamera, setSelectedCamera] = useState<typeof mockCameras[0] | null>(null);
-  const [activeCamera, setActiveCamera] = useState<number>(1);
-  const camerasPerPage = 4;
-  const totalPages = Math.ceil(mockCameras.length / camerasPerPage);
+  const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
+  
+  const zonesPerPage = 4;
+  const totalPages = Math.ceil(zones.length / zonesPerPage);
+  const startIdx = currentPage * zonesPerPage;
+  const currentZones = zones.slice(startIdx, startIdx + zonesPerPage);
 
-  const getCurrentCameras = () => {
-    const start = currentPage * camerasPerPage;
-    return mockCameras.slice(start, start + camerasPerPage);
+  const nextPage = () => {
+    setCurrentPage(prev => (prev + 1) % totalPages);
   };
 
-  const handlePrevious = () => {
-    setCurrentPage((prev) => (prev > 0 ? prev - 1 : totalPages - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : 0));
-  };
-
-  const handleCameraClick = (camera: typeof mockCameras[0]) => {
-    setActiveCamera(camera.id);
-    setSelectedCamera(camera);
+  const prevPage = () => {
+    setCurrentPage(prev => (prev - 1 + totalPages) % totalPages);
   };
 
   return (
     <>
-      <div className="h-full bg-dashboard-panel border-r border-border">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Grid3X3 className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Camera Matrix</h2>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Live security feeds • Page {currentPage + 1} of {totalPages}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevious}
-                className="border-border hover:bg-secondary"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNext}
-                className="border-border hover:bg-secondary"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* 2x2 Camera Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {getCurrentCameras().map((camera) => (
-              <CameraTile
-                key={camera.id}
-                cameraId={camera.id}
-                zone={camera.zone}
-                videoSrc={camera.videoSrc}
-                cctvUrl={camera.cctvUrl}
-                selectedDateTime={selectedDateTime}
-                isActive={camera.id === activeCamera}
-                isOnline={Math.random() > 0.1}
-                onClick={() => handleCameraClick(camera)}
-              />
-            ))}
-          </div>
-
-          {/* Page indicators */}
-          <div className="flex justify-center gap-2">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i)}
-                className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                  i === currentPage ? 'bg-primary' : 'bg-muted hover:bg-accent'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* View Historical Heatmap Button */}
-          <div className="mt-6">
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-foreground">CCTV Matrix</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage + 1} of {totalPages}
+            </span>
             <Button
-              onClick={onToggleMode}
               variant="outline"
-              className="w-full border-border hover:bg-secondary"
+              size="sm"
+              onClick={prevPage}
+              disabled={totalPages <= 1}
+              className="h-8 w-8 p-0"
             >
-              {isHistoricalMode ? "Switch to Live" : "View Historical Heatmap"}
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={nextPage}
+              disabled={totalPages <= 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
 
-          {/* Date Time Picker */}
-          {isHistoricalMode && (
-            <div className="mt-4">
-              <DateTimePicker
-                onDateTimeSelect={onDateTimeSelect}
-                isHistoricalMode={isHistoricalMode}
-                onToggleMode={onToggleMode}
-                availableTimestamps={[
-                  "2023-12-01T08:00:00",
-                  "2023-12-01T10:15:00",
-                  "2023-12-01T12:30:00",
-                  "2023-12-01T14:45:00",
-                  "2023-12-01T16:20:00",
-                  "2023-12-01T18:15:00"
-                ]}
-              />
-            </div>
-          )}
+        {/* Camera Grid */}
+        <div className="grid grid-cols-2 gap-3 h-[calc(100%-60px)]">
+          {Array.from({ length: zonesPerPage }).map((_, idx) => {
+            const zone = currentZones[idx];
+            
+            if (!zone) {
+              return (
+                <div
+                  key={`empty-${idx}`}
+                  className="aspect-video bg-camera-tile border border-border rounded-lg flex items-center justify-center"
+                >
+                  <div className="text-center text-muted-foreground">
+                    <VideoOff className="h-6 w-6 mx-auto mb-2" />
+                    <span className="text-sm">No Camera</span>
+                  </div>
+                </div>
+              );
+            }
 
-          {/* Timeline Progress */}
-          {timelineProgress && isHistoricalMode && (
-            <div className="mt-4 bg-primary/10 border border-primary/30 rounded-lg p-3">
-              <div className="text-xs text-muted-foreground mb-1">Playback Progress</div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-foreground">{timelineProgress.current} / {timelineProgress.total}</span>
-                <span className="text-muted-foreground">
-                  {Math.round((timelineProgress.current / timelineProgress.total) * 100)}%
-                </span>
+            const isSelected = selectedZones.includes(zone);
+            
+            return (
+              <div
+                key={zone}
+                className={`relative aspect-video rounded-lg border transition-all duration-200 cursor-pointer group ${
+                  isSelected 
+                    ? 'border-primary bg-camera-tile-active' 
+                    : 'border-border bg-camera-tile hover:border-muted-foreground'
+                }`}
+                onClick={() => setSelectedCamera(zone)}
+              >
+                {/* Video Element */}
+                <video
+                  className="w-full h-full object-cover rounded-lg"
+                  muted
+                  playsInline
+                  poster="/placeholder.svg"
+                  onError={(e) => {
+                    const target = e.target as HTMLVideoElement;
+                    target.style.display = 'none';
+                  }}
+                >
+                  <source src={`${baseUrl}/videos/${zone}.mp4`} type="video/mp4" />
+                </video>
+
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-background/20 rounded-lg" />
+                
+                {/* Zone Label */}
+                <div className="absolute top-2 left-2">
+                  <div className="bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium text-foreground">
+                    Zone {zone}
+                  </div>
+                </div>
+
+                {/* Selection Indicator */}
+                <div className="absolute top-2 right-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onZoneToggle(zone);
+                    }}
+                    className={`w-6 h-6 rounded-full border-2 transition-all ${
+                      isSelected
+                        ? 'bg-primary border-primary'
+                        : 'border-muted-foreground bg-transparent hover:border-primary'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-primary-foreground rounded-full" />
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                {/* Expand Icon */}
+                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-background/80 backdrop-blur-sm p-1 rounded">
+                    <Video className="h-4 w-4 text-foreground" />
+                  </div>
+                </div>
+
+                {/* Status Indicator */}
+                <div className="absolute bottom-2 left-2">
+                  <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-muted-foreground">Live</span>
+                  </div>
+                </div>
               </div>
-              <div className="w-full bg-muted/30 rounded-full h-1.5 mt-2">
-                <div 
-                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(timelineProgress.current / timelineProgress.total) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
-
+            );
+          })}
         </div>
       </div>
 
       {/* Camera Modal */}
       <CameraModal
+        zone={selectedCamera}
         isOpen={!!selectedCamera}
         onClose={() => setSelectedCamera(null)}
-        cameraId={selectedCamera?.id || 0}
-        zone={selectedCamera?.zone || ""}
-        videoSrc={selectedCamera?.videoSrc}
-        cctvUrl={selectedCamera?.cctvUrl}
-        selectedDateTime={selectedDateTime}
+        baseUrl={baseUrl}
       />
     </>
   );

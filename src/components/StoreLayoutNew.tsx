@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { HeatMapBlob } from "./HeatMapBlob";
+import { HeatMapDot } from "./HeatMapDot";
 import { HeatMapLegend } from "./HeatMapLegend";
 import { useWebSocketReplay, type ZoneData } from "@/hooks/useWebSocketReplay";
 import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
@@ -7,15 +8,36 @@ import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
 // Zone positions aligned with actual layout image (percentages)
 const getZonePositions = (zones: string[]) => {
   const positions: Record<string, { x: number; y: number }> = {};
+  
+  // Define positions for zones A through L (12 zones total)
   const basePositions = [
-    { x: 25, y: 30 }, { x: 75, y: 30 }, { x: 25, y: 70 }, { x: 75, y: 70 },
-    { x: 50, y: 20 }, { x: 50, y: 80 }, { x: 15, y: 50 }, { x: 85, y: 50 },
-    { x: 35, y: 45 }, { x: 65, y: 45 }, { x: 35, y: 55 }, { x: 65, y: 55 }
+    { x: 20, y: 25 },  // Zone A - Top left area
+    { x: 80, y: 25 },  // Zone B - Top right area  
+    { x: 20, y: 75 },  // Zone C - Bottom left area
+    { x: 80, y: 75 },  // Zone D - Bottom right area
+    { x: 50, y: 15 },  // Zone E - Top center
+    { x: 50, y: 85 },  // Zone F - Bottom center
+    { x: 10, y: 50 },  // Zone G - Left center
+    { x: 90, y: 50 },  // Zone H - Right center
+    { x: 35, y: 40 },  // Zone I - Center left
+    { x: 65, y: 40 },  // Zone J - Center right
+    { x: 35, y: 60 },  // Zone K - Lower center left
+    { x: 65, y: 60 }   // Zone L - Lower center right
   ];
   
   zones.forEach((zone, index) => {
     if (index < basePositions.length) {
       positions[zone] = basePositions[index];
+    } else {
+      // For zones beyond L, place them in a grid pattern
+      const gridIndex = index - basePositions.length;
+      const gridCols = 4;
+      const col = gridIndex % gridCols;
+      const row = Math.floor(gridIndex / gridCols);
+      positions[zone] = {
+        x: 15 + (col * 20),
+        y: 20 + (row * 15)
+      };
     }
   });
   
@@ -23,14 +45,15 @@ const getZonePositions = (zones: string[]) => {
 };
 
 interface StoreLayoutProps {
-  selectedTime: string | null;
+  selectedDateTime: Date | null;
   selectedZones: string[];
-  onReplayStart?: (timeString: string) => void;
+  onReplayStart?: (dateTime: Date) => void;
   onReplayStop?: () => void;
   isReplaying: boolean;
+  isHistoricalMode: boolean;
 }
 
-export function StoreLayout({ selectedTime, selectedZones, onReplayStart, onReplayStop, isReplaying }: StoreLayoutProps) {
+export function StoreLayout({ selectedDateTime, selectedZones, onReplayStart, onReplayStop, isReplaying, isHistoricalMode }: StoreLayoutProps) {
   const { zones, isLoading: zonesLoading } = useZoneDiscovery();
   const { connect, disconnect, isConnected, currentData, error } = useWebSocketReplay();
   const [zonePositions, setZonePositions] = useState<Record<string, { x: number; y: number }>>({});
@@ -42,55 +65,88 @@ export function StoreLayout({ selectedTime, selectedZones, onReplayStart, onRepl
     }
   }, [zones]);
 
-  // Start WebSocket replay when time is selected
+  // Start WebSocket replay when DateTime is selected
   useEffect(() => {
-    if (selectedTime && selectedZones.length > 0 && isReplaying) {
+    if (selectedDateTime && selectedZones.length > 0 && isReplaying && isHistoricalMode) {
+      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit', 
+        second: '2-digit'
+      });
+      
       connect({
-        start: selectedTime,
+        start: timeString,
         zones: selectedZones,
         speed: 1.0
       });
     } else {
       disconnect();
     }
-  }, [selectedTime, selectedZones, isReplaying, connect, disconnect]);
+  }, [selectedDateTime, selectedZones, isReplaying, isHistoricalMode, connect, disconnect]);
 
   const handleStopReplay = () => {
     disconnect();
     onReplayStop?.();
   };
 
-  // Generate heat map blobs from WebSocket data
-  const generateHeatMapBlobs = () => {
-    if (!currentData?.zones || Object.keys(zonePositions).length === 0) return [];
+  // Generate heat map data from WebSocket data
+  const generateHeatMapData = () => {
+    if (!currentData?.zones || Object.keys(zonePositions).length === 0) {
+      return { blobs: [], dots: [] };
+    }
 
-    return Object.entries(currentData.zones).map(([zoneName, data]: [string, ZoneData]) => {
+    const blobs: any[] = [];
+    const dots: any[] = [];
+
+    Object.entries(currentData.zones).forEach(([zoneName, data]: [string, any]) => {
       const position = zonePositions[zoneName];
-      if (!position) return null;
+      if (!position) return;
 
-      // Calculate size based on population (min 20, max 100)
-      const size = Math.max(20, Math.min(100, Math.sqrt(data.population) * 10));
+      // Calculate size based on population 
+      const size = Math.max(20, Math.min(100, Math.sqrt(data.population || 0) * 10));
       
       // Convert heat_score (0-1) to intensity (0-100)
-      const intensity = Math.round(data.heat_score * 100);
+      const intensity = Math.round((data.heat_score || 0) * 100);
       
       // Check if crowded (population > 12)
-      const isCrowded = data.population > 12;
+      const isCrowded = (data.population || 0) > 12;
 
-      return {
+      // Add zone blob for overall heat
+      blobs.push({
         x: position.x,
         y: position.y,
-        size: isCrowded ? Math.max(size, 60) : size, // Ensure crowded areas are visible
+        size: isCrowded ? Math.max(size, 60) : size,
         intensity: isCrowded ? Math.max(intensity, 80) : intensity,
         zoneName,
-        population: data.population,
-        avgDwell: data.avg_dwell,
+        population: data.population || 0,
+        avgDwell: data.avg_dwell || 0,
         isCrowded
-      };
-    }).filter(Boolean);
+      });
+
+      // Add individual dots for each person in the zone
+      if (data.dots && Array.isArray(data.dots)) {
+        data.dots.forEach((dot: any) => {
+          // Convert dot coordinates from zone-relative to layout-relative
+          const layoutX = position.x + (dot.x - 0.5) * 15; // 15% spread around zone center
+          const layoutY = position.y + (dot.y - 0.5) * 15;
+          
+          dots.push({
+            x: Math.max(5, Math.min(95, layoutX)) / 100, // Keep within bounds and convert to 0-1
+            y: Math.max(5, Math.min(95, layoutY)) / 100,
+            color: dot.color,
+            id: dot.id,
+            dwell: dot.dwell,
+            zone: zoneName
+          });
+        });
+      }
+    });
+
+    return { blobs, dots };
   };
 
-  const heatMapBlobs = generateHeatMapBlobs();
+  const { blobs: heatMapBlobs, dots: heatMapDots } = generateHeatMapData();
 
   return (
     <div className="h-full bg-dashboard-panel p-4 overflow-hidden">
@@ -116,32 +172,33 @@ export function StoreLayout({ selectedTime, selectedZones, onReplayStart, onRepl
             {/* Dark overlay for better heat map visibility */}
             <div className="absolute inset-0 bg-background/20" />
 
-            {/* Heat map overlay */}
+            {/* Heat map overlay - Zone blobs for overall activity */}
             <div className="absolute inset-0">
               {heatMapBlobs.map((blob, index) => (
                 blob && (
-                  <div key={`${blob.zoneName}-${index}`} className="relative">
+                  <div key={`blob-${blob.zoneName}-${index}`} className="relative">
                     <HeatMapBlob
                       x={blob.x}
                       y={blob.y}
                       size={blob.size}
                       intensity={blob.intensity}
                     />
-                    {/* Zone info tooltip */}
-                    <div
-                      className="absolute transform -translate-x-1/2 -translate-y-full text-xs bg-black/80 text-white px-2 py-1 rounded pointer-events-none opacity-0 hover:opacity-100 transition-opacity"
-                      style={{
-                        left: `${blob.x}%`,
-                        top: `${blob.y}%`,
-                      }}
-                    >
-                      <div>Zone {blob.zoneName}</div>
-                      <div>People: {blob.population}</div>
-                      <div>Dwell: {blob.avgDwell?.toFixed(1)}s</div>
-                      {blob.isCrowded && <div className="text-red-400">CROWDED</div>}
-                    </div>
                   </div>
                 )
+              ))}
+            </div>
+
+            {/* Individual person dots overlay */}
+            <div className="absolute inset-0">
+              {heatMapDots.map((dot, index) => (
+                <HeatMapDot
+                  key={`dot-${dot.zone}-${dot.id}-${index}`}
+                  x={dot.x}
+                  y={dot.y}
+                  color={dot.color}
+                  id={dot.id}
+                  dwell={dot.dwell}
+                />
               ))}
             </div>
 
@@ -181,7 +238,7 @@ export function StoreLayout({ selectedTime, selectedZones, onReplayStart, onRepl
           {isReplaying && (
             <div className="bg-primary/20 border border-primary/40 rounded-lg p-3">
               <div className="text-xs text-muted-foreground">WebSocket Replay</div>
-              <div className="text-sm font-medium text-foreground">
+                <div className="text-sm font-medium text-foreground">
                 <div className="flex items-center justify-between mb-1">
                   <span className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -194,9 +251,9 @@ export function StoreLayout({ selectedTime, selectedZones, onReplayStart, onRepl
                     Stop
                   </button>
                 </div>
-                {selectedTime && (
+                {selectedDateTime && (
                   <div className="text-xs text-muted-foreground mb-1">
-                    Started: {selectedTime}
+                    Started: {selectedDateTime.toLocaleString()}
                   </div>
                 )}
                 <div className="text-xs text-muted-foreground">

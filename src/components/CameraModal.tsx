@@ -1,58 +1,116 @@
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { VideoPlayer } from "./VideoPlayer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { X, Maximize2, Volume2, VolumeX } from "lucide-react";
+import { useState } from "react";
 
 interface CameraModalProps {
+  zone: string | null;
   isOpen: boolean;
   onClose: () => void;
-  cameraId: number;
-  zone: string;
-  videoSrc?: string | null;
-  cctvUrl?: string | null;
-  selectedDateTime?: string | null;
+  baseUrl?: string;
 }
 
-export function CameraModal({ isOpen, onClose, cameraId, zone, videoSrc, cctvUrl, selectedDateTime }: CameraModalProps) {
-  if (!isOpen) return null;
+export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost:8000" }: CameraModalProps) {
+  const [isMuted, setIsMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  if (!zone) return null;
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Modal Content */}
-      <div className="relative bg-card border border-border rounded-lg shadow-2xl max-w-4xl w-full mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border bg-card/90 backdrop-blur-sm">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Camera {cameraId}</h2>
-            <p className="text-sm text-muted-foreground">{zone} Zone</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent 
+        className={`max-w-4xl w-full p-0 ${isFullscreen ? 'max-w-none w-screen h-screen' : ''}`}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <div className="relative w-full h-full">
+          {/* Header */}
+          <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border p-4">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-semibold">
+                Zone {zone} - Live Feed
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleMute}
+                  className="h-8 w-8 p-0"
+                >
+                  {isMuted ? (
+                    <VolumeX className="h-4 w-4" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleFullscreen}
+                  className="h-8 w-8 p-0"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* Video Content */}
+          <div className={`w-full ${isFullscreen ? 'h-screen' : 'h-96 mt-16'}`}>
+            <video
+              className="w-full h-full object-cover bg-background"
+              controls
+              muted={isMuted}
+              autoPlay
+              playsInline
+              onError={(e) => {
+                console.error('Video load error for zone:', zone);
+              }}
+            >
+              <source src={`${baseUrl}/videos/${zone}.mp4`} type="video/mp4" />
+              <div className="w-full h-full flex items-center justify-center bg-muted">
+                <div className="text-center">
+                  <div className="text-muted-foreground mb-2">No video source available</div>
+                  <div className="text-sm text-muted-foreground">Zone {zone}</div>
+                </div>
+              </div>
+            </video>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </Button>
+
+          {/* Info Bar */}
+          <div className="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-sm text-foreground">Live Stream</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Zone {zone} • Camera Feed
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {/* Video Player */}
-        <div className="aspect-video">
-          <VideoPlayer 
-            videoSrc={videoSrc}
-            cctvUrl={cctvUrl}
-            selectedDateTime={selectedDateTime}
-            className="w-full h-full rounded-b-lg"
-            autoPlay={true}
-            muted={false}
-          />
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

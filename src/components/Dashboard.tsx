@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { VideoMatrix, type VideoMatrixRef } from "./VideoMatrix";
 import { StoreLayout } from "./StoreLayoutNew";
+import { CameraPanel } from "./CameraPanel";
+import { DateTimePicker } from "./DateTimePicker";
 import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
-import { SimpleTimePicker } from "./SimpleTimePicker";
 import { Button } from "./ui/button";
-import { Play, Square, Settings } from "lucide-react";
+import { Play, Square } from "lucide-react";
 
 export function Dashboard() {
   const { zones } = useZoneDiscovery();
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(null);
   const [selectedZones, setSelectedZones] = useState<string[]>([]);
   const [isReplaying, setIsReplaying] = useState(false);
+  const [isHistoricalMode, setIsHistoricalMode] = useState(false);
   const videoMatrixRef = useRef<VideoMatrixRef>(null);
 
   // Initialize selected zones when zones are loaded
@@ -20,15 +22,33 @@ export function Dashboard() {
     }
   }, [zones, selectedZones.length]);
 
-  const handleTimeSelect = (timeString: string) => {
-    setSelectedTime(timeString);
+  const handleDateTimeSelect = (dateTime: Date) => {
+    setSelectedDateTime(dateTime);
+    if (isHistoricalMode) {
+      handleStartReplay();
+    }
+  };
+
+  const handleModeToggle = (historical: boolean) => {
+    setIsHistoricalMode(historical);
+    if (!historical) {
+      setIsReplaying(false);
+      setSelectedDateTime(null);
+      videoMatrixRef.current?.pauseAll();
+    }
   };
 
   const handleStartReplay = () => {
-    if (selectedTime && selectedZones.length > 0) {
+    if (selectedDateTime && selectedZones.length > 0 && isHistoricalMode) {
       setIsReplaying(true);
       // Seek videos to selected time
-      videoMatrixRef.current?.seekAllTo(selectedTime);
+      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit', 
+        second: '2-digit'
+      });
+      videoMatrixRef.current?.seekAllTo(timeString);
       videoMatrixRef.current?.playAll();
     }
   };
@@ -107,12 +127,14 @@ export function Dashboard() {
       <div className="border-b border-border bg-card/30 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <SimpleTimePicker
-              onTimeSelect={handleTimeSelect}
-              selectedTime={selectedTime}
+            <DateTimePicker
+              onDateTimeSelect={handleDateTimeSelect}
+              onModeToggle={handleModeToggle}
+              isHistoricalMode={isHistoricalMode}
+              selectedDateTime={selectedDateTime}
             />
             
-            {selectedTime && (
+            {isHistoricalMode && selectedDateTime && (
               <div className="flex items-center gap-2">
                 <Button
                   onClick={isReplaying ? handleStopReplay : handleStartReplay}
@@ -134,7 +156,7 @@ export function Dashboard() {
                 </Button>
                 
                 <span className="text-sm text-muted-foreground">
-                  from {selectedTime}
+                  from {selectedDateTime.toLocaleString()}
                 </span>
               </div>
             )}
@@ -148,15 +170,13 @@ export function Dashboard() {
 
       {/* Main Content - 50/50 Split */}
       <div className="flex min-h-[calc(100vh-160px)]">
-        {/* Left Panel - Video Matrix (50%) */}
+        {/* Left Panel - Camera Panel (50%) */}
         <div className="w-1/2 flex-shrink-0 p-4">
           <div className="h-full bg-card/30 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4">CCTV Matrix</h3>
-            <VideoMatrix
-              ref={videoMatrixRef}
+            <CameraPanel
               zones={zones}
               selectedZones={selectedZones}
-              className="h-[calc(100%-60px)]"
+              onZoneToggle={toggleZoneSelection}
             />
           </div>
         </div>
@@ -164,11 +184,12 @@ export function Dashboard() {
         {/* Right Panel - Heat Map Analytics (50%) */}
         <div className="w-1/2">
           <StoreLayout 
-            selectedTime={selectedTime}
+            selectedDateTime={selectedDateTime}
             selectedZones={selectedZones}
             onReplayStart={handleStartReplay}
             onReplayStop={handleStopReplay}
             isReplaying={isReplaying}
+            isHistoricalMode={isHistoricalMode}
           />
         </div>
       </div>
