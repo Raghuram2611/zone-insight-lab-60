@@ -8,9 +8,11 @@ interface CameraModalProps {
   isOpen: boolean;
   onClose: () => void;
   baseUrl?: string;
+  isReplaying?: boolean;
+  selectedDateTime?: Date | null;
 }
 
-export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost:8000" }: CameraModalProps) {
+export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost:8000", isReplaying = false, selectedDateTime }: CameraModalProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -73,6 +75,20 @@ export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost
           {/* Video Content */}
           <div className={`w-full ${isFullscreen ? 'h-screen' : 'h-96 mt-16'}`}>
             <video
+              ref={(video) => {
+                if (video && isReplaying && selectedDateTime) {
+                  const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit', 
+                    second: '2-digit'
+                  });
+                  const [hours, minutes, seconds] = timeString.split(':').map(Number);
+                  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                  video.currentTime = totalSeconds;
+                  video.play();
+                }
+              }}
               className="w-full h-full object-cover bg-background"
               controls
               muted={isMuted}

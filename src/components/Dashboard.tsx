@@ -56,6 +56,8 @@ export function Dashboard() {
   const handleStopReplay = () => {
     setIsReplaying(false);
     videoMatrixRef.current?.pauseAll();
+    // Refresh the page
+    window.location.reload();
   };
 
   const toggleZoneSelection = (zone: string) => {
@@ -91,26 +93,6 @@ export function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {/* Zone Selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Zones:</span>
-                <div className="flex gap-1">
-                  {zones.map(zone => (
-                    <button
-                      key={zone}
-                      onClick={() => toggleZoneSelection(zone)}
-                      className={`px-2 py-1 text-xs rounded border ${
-                        selectedZones.includes(zone)
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background border-border hover:bg-muted'
-                      }`}
-                    >
-                      {zone}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
               {/* Status */}
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${isReplaying ? 'bg-green-500' : 'bg-muted-foreground'}`} />
@@ -162,9 +144,6 @@ export function Dashboard() {
             )}
           </div>
           
-          <div className="text-sm text-muted-foreground">
-            {selectedZones.length} of {zones.length} zones selected
-          </div>
         </div>
       </div>
 
@@ -172,12 +151,39 @@ export function Dashboard() {
       <div className="flex min-h-[calc(100vh-160px)]">
         {/* Left Panel - Camera Panel (50%) */}
         <div className="w-1/2 flex-shrink-0 p-4">
-          <div className="h-full bg-card/30 rounded-lg p-4">
+          <div className="h-full bg-card/30 rounded-lg p-4 flex flex-col">
             <CameraPanel
               zones={zones}
               selectedZones={selectedZones}
               onZoneToggle={toggleZoneSelection}
+              isReplaying={isReplaying}
+              selectedDateTime={selectedDateTime}
             />
+            
+            {/* Zone Selector moved below camera panels */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Select Zones:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {zones.map(zone => (
+                  <button
+                    key={zone}
+                    onClick={() => toggleZoneSelection(zone)}
+                    className={`px-2 py-1 text-xs rounded border transition-colors ${
+                      selectedZones.includes(zone)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background border-border hover:bg-muted'
+                    }`}
+                  >
+                    Zone {zone}
+                  </button>
+                ))}
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                {selectedZones.length} of {zones.length} zones selected
+              </div>
+            </div>
           </div>
         </div>
 

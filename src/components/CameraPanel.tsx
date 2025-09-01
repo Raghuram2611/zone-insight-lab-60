@@ -8,9 +8,11 @@ interface CameraPanelProps {
   selectedZones: string[];
   onZoneToggle: (zone: string) => void;
   baseUrl?: string;
+  isReplaying?: boolean;
+  selectedDateTime?: Date | null;
 }
 
-export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "http://localhost:8000" }: CameraPanelProps) {
+export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "http://localhost:8000", isReplaying = false, selectedDateTime }: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   
@@ -91,6 +93,20 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
               >
                 {/* Video Element */}
                 <video
+                  ref={(video) => {
+                    if (video && isReplaying && selectedDateTime) {
+                      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
+                        hour12: false,
+                        hour: '2-digit',
+                        minute: '2-digit', 
+                        second: '2-digit'
+                      });
+                      const [hours, minutes, seconds] = timeString.split(':').map(Number);
+                      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                      video.currentTime = totalSeconds;
+                      video.play();
+                    }
+                  }}
                   className="w-full h-full object-cover rounded-lg"
                   muted
                   playsInline
@@ -160,6 +176,8 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
         isOpen={!!selectedCamera}
         onClose={() => setSelectedCamera(null)}
         baseUrl={baseUrl}
+        isReplaying={isReplaying}
+        selectedDateTime={selectedDateTime}
       />
     </>
   );
