@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Video, VideoOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { CameraModal } from "./CameraModal";
@@ -15,6 +15,7 @@ interface CameraPanelProps {
 export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "http://localhost:8000", isReplaying = false, selectedDateTime }: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   
   const zonesPerPage = 4;
   const totalPages = Math.ceil(zones.length / zonesPerPage);
@@ -28,6 +29,36 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
   const prevPage = () => {
     setCurrentPage(prev => (prev - 1 + totalPages) % totalPages);
   };
+
+  // Handle video playback when replay starts
+  useEffect(() => {
+    if (isReplaying && selectedDateTime) {
+      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit', 
+        second: '2-digit'
+      });
+      const [hours, minutes, seconds] = timeString.split(':').map(Number);
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+      // Play videos for selected zones
+      selectedZones.forEach(zone => {
+        const video = videoRefs.current[zone];
+        if (video) {
+          video.currentTime = totalSeconds;
+          video.play().catch(console.error);
+        }
+      });
+    } else {
+      // Pause all videos when not replaying
+      Object.values(videoRefs.current).forEach(video => {
+        if (video) {
+          video.pause();
+        }
+      });
+    }
+  }, [isReplaying, selectedDateTime, selectedZones]);
 
   return (
     <>
@@ -94,18 +125,7 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
                 {/* Video Element */}
                 <video
                   ref={(video) => {
-                    if (video && isReplaying && selectedDateTime) {
-                      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
-                        hour12: false,
-                        hour: '2-digit',
-                        minute: '2-digit', 
-                        second: '2-digit'
-                      });
-                      const [hours, minutes, seconds] = timeString.split(':').map(Number);
-                      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-                      video.currentTime = totalSeconds;
-                      video.play();
-                    }
+                    videoRefs.current[zone] = video;
                   }}
                   className="w-full h-full object-cover rounded-lg"
                   muted
@@ -160,8 +180,12 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
                 {/* Status Indicator */}
                 <div className="absolute bottom-2 left-2">
                   <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-muted-foreground">Live</span>
+                    <div className={`w-2 h-2 rounded-full ${
+                      isReplaying && isSelected ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'
+                    }`} />
+                    <span className="text-muted-foreground">
+                      {isReplaying && isSelected ? 'Playing' : 'Ready'}
+                    </span>
                   </div>
                 </div>
               </div>
