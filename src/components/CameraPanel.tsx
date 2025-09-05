@@ -33,23 +33,36 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
   // Handle video playback when replay starts
   useEffect(() => {
     if (isReplaying && selectedDateTime) {
-      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit', 
-        second: '2-digit'
-      });
-      const [hours, minutes, seconds] = timeString.split(':').map(Number);
-      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+      // Small delay to ensure video elements are ready
+      const timer = setTimeout(() => {
+        const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit', 
+          second: '2-digit'
+        });
+        const [hours, minutes, seconds] = timeString.split(':').map(Number);
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
 
-      // Play videos for selected zones
-      selectedZones.forEach(zone => {
-        const video = videoRefs.current[zone];
-        if (video) {
-          video.currentTime = totalSeconds;
-          video.play().catch(console.error);
-        }
-      });
+        // Play videos for selected zones immediately
+        selectedZones.forEach(zone => {
+          const video = videoRefs.current[zone];
+          if (video) {
+            video.currentTime = totalSeconds;
+            // Ensure the video is loaded and ready
+            if (video.readyState >= 2) {
+              video.play().catch(console.error);
+            } else {
+              video.addEventListener('loadeddata', () => {
+                video.currentTime = totalSeconds;
+                video.play().catch(console.error);
+              }, { once: true });
+            }
+          }
+        });
+      }, 100);
+
+      return () => clearTimeout(timer);
     } else {
       // Pause all videos when not replaying
       Object.values(videoRefs.current).forEach(video => {

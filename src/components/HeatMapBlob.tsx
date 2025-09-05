@@ -3,9 +3,11 @@ interface HeatMapBlobProps {
   y: number;
   size: number;
   intensity: number;
+  zone?: string;
+  count?: number;
 }
 
-export function HeatMapBlob({ x, y, size, intensity }: HeatMapBlobProps) {
+export function HeatMapBlob({ x, y, size, intensity, zone, count }: HeatMapBlobProps) {
   const getColorClass = (intensity: number) => {
     if (intensity >= 80) return 'bg-heat-critical';
     if (intensity >= 60) return 'bg-heat-high';
@@ -18,14 +20,14 @@ export function HeatMapBlob({ x, y, size, intensity }: HeatMapBlobProps) {
     return Math.max(0.6, intensity / 100);
   };
 
-  // Create organic blob shape based on camera analytics - population density affects size
+  // Create larger, more cohesive blob shape for zones
   const getBlobStyle = (size: number) => {
-    const baseSize = Math.max(15, size * 0.8); // Size reflects population density from camera data
-    const variation = intensity * 0.02; // Slight variation based on dwell time
+    const baseSize = Math.max(25, size * 1.2); // Larger base size for zone cohesion
+    const variation = intensity * 0.01; // Less variation for smoother appearance
     return {
       width: `${baseSize}px`,
-      height: `${baseSize * (0.85 + variation)}px`, // Organic oval shape
-      borderRadius: `${baseSize * 0.7}px ${baseSize * 0.4}px ${baseSize * 0.6}px ${baseSize * 0.8}px`,
+      height: `${baseSize * (0.9 + variation)}px`, // More circular shape
+      borderRadius: `${baseSize * 0.8}px ${baseSize * 0.6}px ${baseSize * 0.7}px ${baseSize * 0.9}px`,
     };
   };
 
@@ -37,7 +39,7 @@ export function HeatMapBlob({ x, y, size, intensity }: HeatMapBlobProps) {
         top: `${y}%`,
       }}
     >
-      {/* Main blob */}
+      {/* Main blob - larger and more cohesive */}
       <div
         className={`
           ${getColorClass(intensity)}
@@ -49,6 +51,16 @@ export function HeatMapBlob({ x, y, size, intensity }: HeatMapBlobProps) {
         }}
       />
 
+      {/* Zone label and count */}
+      {zone && count && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+          <div className="bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium">
+            <div className="text-foreground">{zone}</div>
+            <div className="text-muted-foreground">{count}</div>
+          </div>
+        </div>
+      )}
+
       {/* Inner highlight for depth */}
       <div
         className={`
@@ -56,20 +68,20 @@ export function HeatMapBlob({ x, y, size, intensity }: HeatMapBlobProps) {
           blur-xs
         `}
         style={{
-          ...getBlobStyle(size * 0.4),
-          opacity: getOpacity(intensity) * 0.8,
+          ...getBlobStyle(size * 0.5),
+          opacity: getOpacity(intensity) * 0.9,
         }}
       />
 
-      {/* Soft glow effect */}
+      {/* Soft glow effect - larger for better zone visibility */}
       <div
         className={`
-          absolute -inset-2 ${getColorClass(intensity)}
+          absolute -inset-4 ${getColorClass(intensity)}
           blur-lg animate-pulse
         `}
         style={{
-          ...getBlobStyle(size * 1.2),
-          opacity: getOpacity(intensity) * 0.3,
+          ...getBlobStyle(size * 1.5),
+          opacity: getOpacity(intensity) * 0.4,
         }}
       />
     </div>
