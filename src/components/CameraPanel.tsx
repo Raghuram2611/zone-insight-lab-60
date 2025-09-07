@@ -6,18 +6,46 @@ import { CameraModal } from "./CameraModal";
 interface CameraPanelProps {
   zones: string[];
   selectedZones: string[];
-  onZoneToggle: (zone: string) => void;
-  baseUrl?: string;
-  isReplaying?: boolean;
-  selectedDateTime?: Date | null;
+  onZoneChange: (zones: string[]) => void;
+  selectedDateTime?: Date;
+  isReplaying: boolean;
+  onReplayStart: () => void;
+  onReplayStop: () => void;
+  updateInterval: number;
 }
 
-export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "http://localhost:8000", isReplaying = false, selectedDateTime }: CameraPanelProps) {
+export function CameraPanel({ 
+  zones, 
+  selectedZones, 
+  onZoneChange, 
+  selectedDateTime, 
+  isReplaying, 
+  onReplayStart, 
+  onReplayStop, 
+  updateInterval 
+}: CameraPanelProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   
   const zonesPerPage = 4;
+  const baseUrl = "/videos";
+
+  const handleZoneToggle = (zone: string) => {
+    if (selectedZones.includes(zone)) {
+      onZoneChange(selectedZones.filter(z => z !== zone));
+    } else {
+      onZoneChange([...selectedZones, zone]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedZones.length === zones.length) {
+      onZoneChange([]);
+    } else {
+      onZoneChange(zones);
+    }
+  };
   const totalPages = Math.ceil(zones.length / zonesPerPage);
   const startIdx = currentPage * zonesPerPage;
   const currentZones = zones.slice(startIdx, startIdx + zonesPerPage);
@@ -104,8 +132,38 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
           </div>
         </div>
 
-        {/* Camera Grid */}
-        <div className="grid grid-cols-2 gap-3 h-[calc(100%-60px)]">
+        {/* Zone Selection - Minimal */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-medium">Zones</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="text-[10px] h-6 px-2"
+            >
+              {selectedZones.length === zones.length ? 'Clear' : 'All'}
+            </Button>
+          </div>
+          <div className="grid grid-cols-3 gap-1 max-h-20 overflow-y-auto">
+            {zones.map((zone) => (
+              <div
+                key={zone}
+                className={`p-1 text-[10px] rounded cursor-pointer transition-colors ${
+                  selectedZones.includes(zone)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                }`}
+                onClick={() => handleZoneToggle(zone)}
+              >
+                {zone}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Camera Grid - 2x2 Matrix */}
+        <div className="grid grid-cols-2 gap-2 h-[calc(100%-120px)]">
           {Array.from({ length: zonesPerPage }).map((_, idx) => {
             const zone = currentZones[idx];
             
@@ -167,7 +225,7 @@ export function CameraPanel({ zones, selectedZones, onZoneToggle, baseUrl = "htt
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onZoneToggle(zone);
+                      handleZoneToggle(zone);
                     }}
                     className={`w-6 h-6 rounded-full border-2 transition-all ${
                       isSelected

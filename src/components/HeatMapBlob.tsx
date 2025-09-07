@@ -20,14 +20,14 @@ export function HeatMapBlob({ x, y, size, intensity, zone, count }: HeatMapBlobP
     return Math.max(0.6, intensity / 100);
   };
 
-  // Create larger, more cohesive blob shape for zones
+  // Create individual ID blobs with expanded blur
   const getBlobStyle = (size: number) => {
-    const baseSize = Math.max(25, size * 1.2); // Larger base size for zone cohesion
-    const variation = intensity * 0.01; // Less variation for smoother appearance
+    const baseSize = Math.max(15, size * 0.8); // Smaller individual blobs
+    const variation = intensity * 0.02;
     return {
       width: `${baseSize}px`,
-      height: `${baseSize * (0.9 + variation)}px`, // More circular shape
-      borderRadius: `${baseSize * 0.8}px ${baseSize * 0.6}px ${baseSize * 0.7}px ${baseSize * 0.9}px`,
+      height: `${baseSize * (0.8 + variation)}px`,
+      borderRadius: `${baseSize * 0.6}px ${baseSize * 0.4}px ${baseSize * 0.5}px ${baseSize * 0.7}px`,
     };
   };
 
@@ -39,11 +39,11 @@ export function HeatMapBlob({ x, y, size, intensity, zone, count }: HeatMapBlobP
         top: `${y}%`,
       }}
     >
-      {/* Main blob - larger and more cohesive */}
+      {/* Main blob - individual ID with expanded blur */}
       <div
         className={`
           ${getColorClass(intensity)}
-          blur-sm transition-all duration-700
+          blur-lg transition-all duration-700
         `}
         style={{
           ...getBlobStyle(size),
@@ -73,15 +73,15 @@ export function HeatMapBlob({ x, y, size, intensity, zone, count }: HeatMapBlobP
         }}
       />
 
-      {/* Soft glow effect - larger for better zone visibility */}
+      {/* Expanded glow effect for individual visibility */}
       <div
         className={`
-          absolute -inset-4 ${getColorClass(intensity)}
-          blur-lg animate-pulse
+          absolute -inset-6 ${getColorClass(intensity)}
+          blur-xl animate-pulse
         `}
         style={{
-          ...getBlobStyle(size * 1.5),
-          opacity: getOpacity(intensity) * 0.4,
+          ...getBlobStyle(size * 2),
+          opacity: getOpacity(intensity) * 0.3,
         }}
       />
     </div>

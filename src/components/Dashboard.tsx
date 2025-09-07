@@ -155,9 +155,12 @@ export function Dashboard() {
             <CameraPanel
               zones={zones}
               selectedZones={selectedZones}
-              onZoneToggle={toggleZoneSelection}
-              isReplaying={isReplaying}
+              onZoneChange={setSelectedZones}
               selectedDateTime={selectedDateTime}
+              isReplaying={isReplaying}
+              onReplayStart={() => setIsReplaying(true)}
+              onReplayStop={() => setIsReplaying(false)}
+              updateInterval={1}
             />
             
             {/* Zone Selector moved below camera panels */}

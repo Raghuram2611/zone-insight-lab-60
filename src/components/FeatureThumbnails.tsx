@@ -33,7 +33,7 @@ const features = [
 
 export function FeatureThumbnails({ onFeatureSelect, selectedFeature }: FeatureThumbnailsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 p-4">
+    <div className="flex gap-2 p-2">
       {features.map((feature) => {
         const Icon = feature.icon;
         const isSelected = selectedFeature === feature.id;
@@ -41,19 +41,21 @@ export function FeatureThumbnails({ onFeatureSelect, selectedFeature }: FeatureT
         return (
           <Card 
             key={feature.id}
-            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+            className={`cursor-pointer transition-all duration-200 hover:shadow-md min-w-0 ${
               isSelected ? 'ring-2 ring-primary bg-primary/10' : 'hover:bg-accent/10'
             }`}
             onClick={() => onFeatureSelect(feature.id)}
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-secondary ${feature.color}`}>
-                  <Icon className="w-5 h-5" />
+            <CardContent className="p-2">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className={`p-1.5 rounded-md bg-secondary ${feature.color}`}>
+                  <Icon className="w-3 h-3" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-sm">{feature.title}</h3>
-                  <p className="text-xs text-muted-foreground">{feature.description}</p>
+                  <h3 className="font-medium text-xs leading-none">{feature.title}</h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">
+                    {feature.description}
+                  </p>
                 </div>
               </div>
             </CardContent>
