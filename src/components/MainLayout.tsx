@@ -2,8 +2,10 @@ import { useState } from "react";
 import { TopHeader } from "./TopHeader";
 import { CameraPanel } from "./CameraPanel";
 import { FeatureThumbnails } from "./FeatureThumbnails";
+import { DateTimePicker } from "./DateTimePicker";
 import { StoreLayout } from "./StoreLayoutNew";
 import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
 import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
 import { BarChart3, TrendingUp } from "lucide-react";
 
@@ -26,8 +28,8 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
       <TopHeader selectedDateTime={selectedDateTime} onLogout={onLogout} />
       
       <div className="flex h-[calc(100vh-64px)]">
-        {/* Left Sidebar - Compact Camera Matrix */}
-        <div className="w-64 border-r border-border bg-card/50 flex flex-col">
+        {/* Left Panel - Camera Matrix (50%) */}
+        <div className="w-1/2 border-r border-border bg-card/50 flex flex-col">
           <CameraPanel
             zones={zones}
             selectedZones={selectedZones}
@@ -40,8 +42,8 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
           />
         </div>
 
-        {/* Right Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Right Panel - Features and Layout (50%) */}
+        <div className="w-1/2 flex flex-col overflow-hidden">
           {/* Compact Feature Selection */}
           <div className="border-b border-border bg-card/30 py-1">
             <FeatureThumbnails
@@ -49,6 +51,39 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
               onFeatureSelect={setSelectedFeature}
             />
           </div>
+
+          {/* Date/Time Controls for Heatmap */}
+          {selectedFeature === 'heatmap' && (
+            <div className="border-b border-border bg-card/30 p-2">
+              <DateTimePicker
+                onDateTimeSelect={setSelectedDateTime}
+                onModeToggle={(historical) => {
+                  if (!historical) {
+                    setIsReplaying(false);
+                    setSelectedDateTime(undefined);
+                  }
+                }}
+                isHistoricalMode={!!selectedDateTime}
+                selectedDateTime={selectedDateTime}
+              />
+              
+              {selectedDateTime && (
+                <div className="mt-2 flex items-center gap-2">
+                  <Button
+                    onClick={isReplaying ? () => setIsReplaying(false) : () => setIsReplaying(true)}
+                    disabled={selectedZones.length === 0}
+                    size="sm"
+                    variant={isReplaying ? "destructive" : "default"}
+                  >
+                    {isReplaying ? 'Stop Replay' : 'Start Replay'}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedZones.length} zones selected
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Main Content - Scrollable with more space */}
           <div className="flex-1 overflow-auto">
@@ -60,7 +95,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                   onReplayStart={() => setIsReplaying(true)}
                   onReplayStop={() => setIsReplaying(false)}
                   isReplaying={isReplaying}
-                  isHistoricalMode={true}
+                  isHistoricalMode={!!selectedDateTime}
                   updateInterval={updateInterval}
                 />
               </div>
