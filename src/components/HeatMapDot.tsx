@@ -1,8 +1,8 @@
 import { memo } from "react";
 
 interface HeatMapDotProps {
-  x: number; // 0-1 range
-  y: number; // 0-1 range
+  x: number; // percentage coordinates
+  y: number; // percentage coordinates
   color: "blue" | "green" | "yellow" | "red";
   id: string;
   dwell: number;
@@ -42,8 +42,8 @@ export const HeatMapDot = memo(function HeatMapDot({
     <div
       className="absolute pointer-events-none animate-pulse"
       style={{
-        left: `${x * 100}%`,
-        top: `${y * 100}%`,
+        left: `${x}%`,
+        top: `${y}%`,
         transform: 'translate(-50%, -50%)',
         width: `${dotSize}px`,
         height: `${dotSize}px`,

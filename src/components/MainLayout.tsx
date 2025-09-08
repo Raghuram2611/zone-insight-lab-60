@@ -4,6 +4,8 @@ import { CameraPanel } from "./CameraPanel";
 import { FeatureThumbnails } from "./FeatureThumbnails";
 import { DateTimePicker } from "./DateTimePicker";
 import { StoreLayout } from "./StoreLayoutNew";
+import { UpdateIntervalSelector } from "./UpdateIntervalSelector";
+import { FunnelingControls } from "./FunnelingControls";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
@@ -69,13 +71,17 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
               
               {selectedDateTime && (
                 <div className="mt-2 flex items-center gap-2">
+                  <UpdateIntervalSelector
+                    value={updateInterval}
+                    onChange={setUpdateInterval}
+                  />
                   <Button
-                    onClick={isReplaying ? () => setIsReplaying(false) : () => setIsReplaying(true)}
+                    onClick={isReplaying ? () => window.location.reload() : () => setIsReplaying(true)}
                     disabled={selectedZones.length === 0}
                     size="sm"
                     variant={isReplaying ? "destructive" : "default"}
                   >
-                    {isReplaying ? 'Stop Replay' : 'Start Replay'}
+                    {isReplaying ? 'Stop' : 'Start Replay'}
                   </Button>
                   <span className="text-sm text-muted-foreground">
                     {selectedZones.length} zones selected
@@ -83,6 +89,11 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Store Funneling Controls */}
+          {selectedFeature === 'storefunneling' && (
+            <FunnelingControls />
           )}
 
           {/* Main Content - Scrollable with more space */}

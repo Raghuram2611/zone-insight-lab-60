@@ -39,15 +39,29 @@ export function HeatMapBlob({ x, y, size, intensity, zone, count }: HeatMapBlobP
         top: `${y}%`,
       }}
     >
-      {/* Main blob - individual ID with expanded blur */}
+      {/* Main blob with enhanced blur */}
       <div
         className={`
           ${getColorClass(intensity)}
-          blur-lg transition-all duration-700
+          transition-all duration-700
         `}
         style={{
           ...getBlobStyle(size),
           opacity: getOpacity(intensity),
+          filter: 'blur(25px)', // Enhanced blur intensity
+        }}
+      />
+
+      {/* Additional blur layer for expanded effect */}
+      <div
+        className={`
+          absolute inset-0 ${getColorClass(intensity)}
+        `}
+        style={{
+          ...getBlobStyle(size * 1.5),
+          opacity: getOpacity(intensity) * 0.4,
+          filter: 'blur(40px)',
+          transform: 'scale(1.3)',
         }}
       />
 
@@ -61,27 +75,16 @@ export function HeatMapBlob({ x, y, size, intensity, zone, count }: HeatMapBlobP
         </div>
       )}
 
-      {/* Inner highlight for depth */}
+      {/* Outer glow for maximum visibility */}
       <div
         className={`
-          absolute top-1/4 left-1/4 ${getColorClass(intensity)}
-          blur-xs
+          absolute -inset-8 ${getColorClass(intensity)}
+          animate-pulse
         `}
         style={{
-          ...getBlobStyle(size * 0.5),
-          opacity: getOpacity(intensity) * 0.9,
-        }}
-      />
-
-      {/* Expanded glow effect for individual visibility */}
-      <div
-        className={`
-          absolute -inset-6 ${getColorClass(intensity)}
-          blur-xl animate-pulse
-        `}
-        style={{
-          ...getBlobStyle(size * 2),
-          opacity: getOpacity(intensity) * 0.3,
+          ...getBlobStyle(size * 2.5),
+          opacity: getOpacity(intensity) * 0.2,
+          filter: 'blur(60px)',
         }}
       />
     </div>

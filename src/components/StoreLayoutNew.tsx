@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import { HeatMapBlob } from "./HeatMapBlob";
-import { HeatMapDot } from "./HeatMapDot";
-import { HeatMapLegend } from "./HeatMapLegend";
-import { ZoomControls } from "./ZoomControls";
-import { useWebSocketReplay, type ZoneData } from "@/hooks/useWebSocketReplay";
-import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
-import { Card, CardContent } from "./ui/card";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent } from './ui/card';
+import { HeatMapBlob } from './HeatMapBlob';
+import { HeatMapDot } from './HeatMapDot';
+import { HeatMapLegend } from './HeatMapLegend';
+import { ZoomControls } from './ZoomControls';
+import { useZoneDiscovery } from '@/hooks/useZoneDiscovery';
+import { useWebSocketReplay } from '@/hooks/useWebSocketReplay';
 
 // Zone positions aligned with actual layout image (percentages)
 const getZonePositions = (zones: string[]) => {
@@ -23,28 +23,52 @@ const getZonePositions = (zones: string[]) => {
     { x: 90, y: 50 },  // Zone H - Right center
     { x: 35, y: 40 },  // Zone I - Center left
     { x: 65, y: 40 },  // Zone J - Center right
-    { x: 35, y: 60 },  // Zone K - Lower center left
-    { x: 65, y: 60 }   // Zone L - Lower center right
+    { x: 50, y: 40 },  // Zone K - Dead center
+    { x: 35, y: 60 },  // Zone L - Lower center left
   ];
-  
+
+  // Assign positions to actual zones
   zones.forEach((zone, index) => {
     if (index < basePositions.length) {
       positions[zone] = basePositions[index];
     } else {
-      // For zones beyond L, place them in a grid pattern
+      // For additional zones, create a grid pattern
+      const gridCols = Math.ceil(Math.sqrt(zones.length - basePositions.length));
       const gridIndex = index - basePositions.length;
-      const gridCols = 4;
-      const col = gridIndex % gridCols;
       const row = Math.floor(gridIndex / gridCols);
+      const col = gridIndex % gridCols;
+      
       positions[zone] = {
-        x: 15 + (col * 20),
-        y: 20 + (row * 15)
+        x: 15 + (col * 70) / Math.max(1, gridCols - 1),
+        y: 15 + (row * 70) / Math.max(1, Math.ceil((zones.length - basePositions.length) / gridCols) - 1),
       };
     }
   });
   
   return positions;
 };
+
+export interface DotData {
+  id: string;
+  x: number;
+  y: number;
+  dwell: number;
+  color: string;
+}
+
+export interface ZoneData {
+  population: number;
+  avg_dwell: number;
+  heat_score: number;
+  size_scale?: number;
+  crowded?: boolean;
+  dots?: DotData[];
+}
+
+export interface WebSocketMessage {
+  timestamp: string;
+  zones: Record<string, ZoneData>;
+}
 
 interface StoreLayoutProps {
   selectedDateTime?: Date;
@@ -65,118 +89,168 @@ export function StoreLayout({
   isHistoricalMode, 
   updateInterval = 1 
 }: StoreLayoutProps) {
-  const { zones, isLoading: zonesLoading } = useZoneDiscovery();
-  const { connect, disconnect, isConnected, currentData, error } = useWebSocketReplay();
-  const [zonePositions, setZonePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [zoom, setZoom] = useState(1);
-  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
-  const [filteredData, setFilteredData] = useState(currentData);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastUpdateRef = useRef<number>(0);
+  
+  const { zones } = useZoneDiscovery();
+  const { connect, disconnect, isConnected, currentData, error } = useWebSocketReplay();
+  
+  const [zonePositions, setZonePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [filteredData, setFilteredData] = useState<WebSocketMessage | null>(null);
 
-  // Handle data filtering based on update interval
-  useEffect(() => {
-    const now = Date.now();
-    if (currentData && (now - lastUpdateTime >= updateInterval * 1000)) {
-      setFilteredData(currentData);
-      setLastUpdateTime(now);
-    }
-  }, [currentData, updateInterval, lastUpdateTime]);
-
-  // Update zone positions when zones are loaded
+  // Update zone positions when zones change
   useEffect(() => {
     if (zones.length > 0) {
       setZonePositions(getZonePositions(zones));
     }
   }, [zones]);
 
-  // Start WebSocket replay when DateTime is selected
+  // Filter data based on update interval
   useEffect(() => {
-    if (selectedDateTime && selectedZones.length > 0 && isReplaying && isHistoricalMode) {
-      const timeString = selectedDateTime.toLocaleTimeString('en-GB', { 
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit', 
-        second: '2-digit'
-      });
+    if (currentData) {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdateRef.current;
+      
+      if (timeSinceLastUpdate >= updateInterval * 1000) {
+        setFilteredData(currentData);
+        lastUpdateRef.current = now;
+      }
+    }
+  }, [currentData, updateInterval]);
+
+  // Handle WebSocket connection for replay
+  useEffect(() => {
+    if (isReplaying && selectedDateTime && selectedZones.length > 0) {
+      const timeString = selectedDateTime.toTimeString().split(' ')[0]; // Get HH:MM:SS format
       
       connect({
         start: timeString,
         zones: selectedZones,
-        speed: 1.0
+        speed: 1.0,
+        alpha: 0.5,
+        beta: 0.3,
+        dwell_norm: 30
       });
-    } else {
+      
+      onReplayStart?.();
+    } else if (!isReplaying) {
       disconnect();
-    }
-  }, [selectedDateTime, selectedZones, isReplaying, isHistoricalMode, connect, disconnect]);
-
-  const handleStopReplay = () => {
-    disconnect();
-    onReplayStop?.();
-  };
-
-  // Generate heat map data from WebSocket data with zone clustering
-  const generateHeatMapData = () => {
-    if (!filteredData?.zones || Object.keys(zonePositions).length === 0) {
-      return { blobs: [], dots: [] };
+      onReplayStop?.();
     }
 
-    const blobs: any[] = [];
-    const dots: any[] = [];
-    const zoneData: Record<string, { totalPop: number, totalDwell: number, positions: any[] }> = {};
-
-    // First pass: collect zone data
-    Object.entries(filteredData.zones).forEach(([zoneName, data]: [string, any]) => {
-      const position = zonePositions[zoneName];
-      if (!position || !selectedZones.includes(zoneName)) return;
-
-      const { population, avg_dwell, heat_score } = data;
-      
-      if (!zoneData[zoneName]) {
-        zoneData[zoneName] = { totalPop: 0, totalDwell: 0, positions: [] };
+    return () => {
+      if (!isReplaying) {
+        disconnect();
       }
-      
-      zoneData[zoneName].totalPop += population;
-      zoneData[zoneName].totalDwell = avg_dwell;
-      zoneData[zoneName].positions.push(position);
-    });
+    };
+  }, [isReplaying, selectedDateTime, selectedZones, connect, disconnect, onReplayStart, onReplayStop]);
 
-    // Second pass: create cohesive blobs and clustered dots
-    Object.entries(zoneData).forEach(([zoneName, data]) => {
+  const generateHeatMapData = useCallback(() => {
+    if (!filteredData) return { blobs: [], dots: [] };
+
+    const blobs: Array<{
+      x: number;
+      y: number;
+      size: number;
+      intensity: number;
+      zone: string;
+      count: number;
+    }> = [];
+
+    const dots: Array<{
+      id: string;
+      x: number;
+      y: number;
+      color: "blue" | "green" | "yellow" | "red";
+      dwell: number;
+    }> = [];
+
+    // Process each zone in the filtered data
+    Object.entries(filteredData.zones).forEach(([zoneName, zoneData]) => {
+      if (!selectedZones.includes(zoneName) || !zonePositions[zoneName]) return;
+
       const position = zonePositions[zoneName];
-      if (!position) return;
-
-      const { totalPop, totalDwell } = data;
-      const heat_score = Math.min(1, totalDwell / 30); // Normalize dwell time to heat score
-
-      // Create larger, more cohesive blob for the entire zone
-      blobs.push({
-        x: position.x,
-        y: position.y,
-        size: Math.max(30, totalPop * 12), // Larger base size
-        intensity: Math.min(100, heat_score * 100),
-        zone: zoneName,
-        count: totalPop
-      });
-
-      // Create clustered dots closer to zone center
-      for (let i = 0; i < totalPop; i++) {
-        const angle = (i / totalPop) * 2 * Math.PI;
-        const radius = 0.08 + Math.random() * 0.04; // Closer clustering
-        const dotX = position.x + Math.cos(angle) * radius;
-        const dotY = position.y + Math.sin(angle) * radius;
-        
-        dots.push({
-          id: `${zoneName}-${i}`,
-          x: Math.max(0, Math.min(1, dotX / 100)),
-          y: Math.max(0, Math.min(1, dotY / 100)),
-          dwell: totalDwell,
-          color: heat_score > 0.8 ? 'red' : heat_score > 0.6 ? 'yellow' : heat_score > 0.4 ? 'green' : 'blue'
+      
+      // If we have individual dots data from WebSocket, use that
+      if (zoneData.dots && zoneData.dots.length > 0) {
+        zoneData.dots.forEach((dot) => {
+          // Convert relative coordinates (0-1) to percentage coordinates
+          const dotX = position.x + (dot.x - 0.5) * 15; // Spread dots within 15% of zone center
+          const dotY = position.y + (dot.y - 0.5) * 15;
+          
+          // Map color string to valid color type
+          let validColor: "blue" | "green" | "yellow" | "red" = 'blue';
+          if (dot.color === 'red' || dot.color === 'yellow' || dot.color === 'green') {
+            validColor = dot.color;
+          }
+          
+          dots.push({
+            id: `${zoneName}-${dot.id}`,
+            x: Math.max(2, Math.min(98, dotX)),
+            y: Math.max(2, Math.min(98, dotY)),
+            color: validColor,
+            dwell: dot.dwell
+          });
         });
+
+        // Create enhanced blur blob for the zone
+        const baseSize = Math.max(40, Math.min(150, zoneData.dots.length * 12));
+        const intensity = Math.min(100, (zoneData.avg_dwell / 30) * 100);
+        
+        blobs.push({
+          x: position.x,
+          y: position.y,
+          size: baseSize,
+          intensity: Math.max(30, intensity),
+          zone: zoneName,
+          count: zoneData.dots.length
+        });
+      } else {
+        // Fallback: generate synthetic data if no individual dots provided
+        const population = zoneData.population || 0;
+        const avgDwell = zoneData.avg_dwell || 0;
+        
+        if (population > 0) {
+          // Create main zone blob
+          const baseSize = Math.max(30, Math.min(120, population * 8));
+          const intensity = Math.min(100, (avgDwell / 30) * 100);
+          
+          blobs.push({
+            x: position.x,
+            y: position.y,
+            size: baseSize,
+            intensity: Math.max(20, intensity),
+            zone: zoneName,
+            count: population
+          });
+
+          // Generate individual dots around the zone center
+          for (let i = 0; i < population; i++) {
+            const angle = (i / population) * 2 * Math.PI;
+            const radius = Math.random() * 8;
+            const dotX = position.x + Math.cos(angle) * radius;
+            const dotY = position.y + Math.sin(angle) * radius;
+            
+            let color: "blue" | "green" | "yellow" | "red" = 'blue';
+            const randomDwell = Math.random() * 40;
+            if (randomDwell > 30) color = 'red';
+            else if (randomDwell > 15) color = 'yellow';
+            
+            dots.push({
+              id: `${zoneName}-${i}`,
+              x: Math.max(2, Math.min(98, dotX)),
+              y: Math.max(2, Math.min(98, dotY)),
+              color: color,
+              dwell: Math.round(randomDwell)
+            });
+          }
+        }
       }
     });
 
     return { blobs, dots };
-  };
+  }, [filteredData, selectedZones, zonePositions]);
 
   const handleZoomIn = () => setZoom(prev => Math.min(3, prev + 0.2));
   const handleZoomOut = () => setZoom(prev => Math.max(0.5, prev - 0.2));
@@ -299,7 +373,7 @@ export function StoreLayout({
             <div className="bg-card/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border">
               <div className="text-sm">
                 <div className="font-medium">Last Update</div>
-                <div className="text-muted-foreground">{new Date(filteredData.timestamp).toLocaleTimeString()}</div>
+                <div className="text-muted-foreground">{filteredData.timestamp}</div>
               </div>
             </div>
           )}
