@@ -35,6 +35,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
   const [selectedFeature, setSelectedFeature] = useState("heatmap");
   const [updateInterval, setUpdateInterval] = useState(1);
   const [funnelData, setFunnelData] = useState<FunnelData | null>(null);
+  const [showHistoricalMode, setShowHistoricalMode] = useState(false);
 
   const { zones } = useZoneDiscovery();
 
@@ -68,38 +69,89 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
             />
           </div>
 
-          {/* Date/Time Controls for Heatmap */}
+          {/* Heatmap Controls - Systematic Flow */}
           {selectedFeature === 'heatmap' && (
-            <div className="border-b border-border bg-card/30 p-2">
-              <DateTimePicker
-                onDateTimeSelect={setSelectedDateTime}
-                onModeToggle={(historical) => {
-                  if (!historical) {
-                    setIsReplaying(false);
-                    setSelectedDateTime(undefined);
-                  }
-                }}
-                isHistoricalMode={!!selectedDateTime}
-                selectedDateTime={selectedDateTime}
-              />
-              
-              {selectedDateTime && (
-                <div className="mt-2 flex items-center gap-2">
-                  <UpdateIntervalSelector
-                    value={updateInterval}
-                    onChange={setUpdateInterval}
-                  />
+            <div className="border-b border-border bg-card/30 p-3 space-y-3">
+              {/* Step 1: View Historical Button */}
+              {!showHistoricalMode && (
+                <div className="text-center">
                   <Button
-                    onClick={isReplaying ? () => window.location.reload() : () => setIsReplaying(true)}
-                    disabled={selectedZones.length === 0}
-                    size="sm"
-                    variant={isReplaying ? "destructive" : "default"}
+                    onClick={() => setShowHistoricalMode(true)}
+                    variant="default"
+                    className="min-w-[140px]"
                   >
-                    {isReplaying ? 'Stop' : 'Start Replay'}
+                    View Historical
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {selectedZones.length} zones selected
-                  </span>
+                </div>
+              )}
+              
+              {/* Step 2: Date Time Selection */}
+              {showHistoricalMode && !selectedDateTime && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Select Start Time</h4>
+                    <Button
+                      onClick={() => {
+                        setShowHistoricalMode(false);
+                        setSelectedDateTime(undefined);
+                        setIsReplaying(false);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                  <DateTimePicker
+                    onDateTimeSelect={setSelectedDateTime}
+                    onModeToggle={() => {}}
+                    isHistoricalMode={true}
+                    selectedDateTime={selectedDateTime}
+                  />
+                </div>
+              )}
+              
+              {/* Step 3: Update Interval & Start Replay */}
+              {selectedDateTime && showHistoricalMode && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <div className="font-medium">Start Time Selected</div>
+                      <div className="text-muted-foreground">
+                        {selectedDateTime.toLocaleDateString()} • {selectedDateTime.toLocaleTimeString()}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setSelectedDateTime(undefined);
+                        setShowHistoricalMode(false);
+                        setIsReplaying(false);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Change Time
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <UpdateIntervalSelector
+                      value={updateInterval}
+                      onChange={setUpdateInterval}
+                    />
+                    <Button
+                      onClick={isReplaying ? () => window.location.reload() : () => setIsReplaying(true)}
+                      disabled={selectedZones.length === 0}
+                      size="sm"
+                      variant={isReplaying ? "destructive" : "default"}
+                      className="min-w-[100px]"
+                    >
+                      {isReplaying ? 'Stop' : 'Start Replay'}
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedZones.length} zones selected
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -120,7 +172,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                   onReplayStart={() => setIsReplaying(true)}
                   onReplayStop={() => setIsReplaying(false)}
                   isReplaying={isReplaying}
-                  isHistoricalMode={!!selectedDateTime}
+                  isHistoricalMode={showHistoricalMode}
                   updateInterval={updateInterval}
                 />
               </div>
@@ -186,9 +238,9 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                                 </linearGradient>
                               </defs>
                               
-                              {/* Main Funnel Shape */}
+                              {/* Main Funnel Shape - True Funnel */}
                               <path
-                                d="M 50 50 L 350 50 L 300 450 L 100 450 Z"
+                                d="M 80 60 L 320 60 L 280 150 L 120 150 Z M 120 150 L 280 150 L 250 240 L 150 240 Z M 150 240 L 250 240 L 220 330 L 180 330 Z M 180 330 L 220 330 L 210 420 L 190 420 Z"
                                 fill="url(#funnelGradient)"
                                 stroke="url(#funnelBorder)"
                                 strokeWidth="2"
@@ -199,20 +251,16 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                               {funnelData.zones
                                 .sort((a, b) => b.percentage - a.percentage)
                                 .map((zone, index) => {
-                                  const segmentHeight = 80;
+                                  const segmentHeight = 90;
                                   const yPos = 60 + index * segmentHeight;
-                                  const topWidth = 300 - (index * 40);
-                                  const bottomWidth = 300 - ((index + 1) * 40);
-                                  const leftTop = 50 + (300 - topWidth) / 2;
-                                  const leftBottom = 50 + (300 - bottomWidth) / 2;
                                   
                                   return (
                                     <g key={zone.zone}>
                                       {/* Segment Separator Line */}
                                       <line
-                                        x1={leftTop}
+                                        x1={80 + index * 20}
                                         y1={yPos}
-                                        x2={leftTop + topWidth}
+                                        x2={320 - index * 20}
                                         y2={yPos}
                                         stroke="hsl(var(--border))"
                                         strokeWidth="1"
@@ -224,13 +272,12 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                                 })}
                             </svg>
 
-                            {/* Zone Labels and Data */}
                             <div className="absolute inset-0 pointer-events-none">
                               {funnelData.zones
                                 .sort((a, b) => b.percentage - a.percentage)
                                 .map((zone, index) => {
-                                  const segmentHeight = 80;
-                                  const yPos = 60 + index * segmentHeight + 25;
+                                  const segmentHeight = 90;
+                                  const yPos = 60 + index * segmentHeight + 30;
                                   
                                   return (
                                     <div
