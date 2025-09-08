@@ -162,38 +162,134 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                           </div>
                         </div>
 
-                        {/* Funnel Chart */}
-                        <div className="space-y-3">
-                          <h4 className="text-lg font-semibold text-center mb-4">Customer Flow Funnel</h4>
-                          {funnelData.zones
-                            .sort((a, b) => b.percentage - a.percentage)
-                            .map((zone, index) => (
-                              <div key={zone.zone} className="relative">
-                                <div
-                                  className="bg-gradient-to-r from-primary/90 to-primary/70 rounded-lg p-4 text-white relative overflow-hidden transition-all duration-300 hover:scale-105"
-                                  style={{
-                                    width: `${Math.max(zone.percentage, 15)}%`,
-                                    marginLeft: `${(100 - Math.max(zone.percentage, 15)) / 2}%`,
-                                    minWidth: '200px'
-                                  }}
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-semibold text-lg">Zone {zone.zone}</span>
-                                    <span className="text-lg font-bold">{zone.percentage.toFixed(1)}%</span>
-                                  </div>
-                                  <div className="text-sm opacity-90 mt-1">
-                                    {zone.unique_visitors} visitors • {Math.floor(zone.total_time_sec / 60)}min avg
-                                  </div>
-                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/10 pointer-events-none" />
-                                </div>
-                              </div>
-                            ))}
+                        {/* Professional Funnel Chart */}
+                        <div className="space-y-4">
+                          <h4 className="text-lg font-semibold text-center mb-6">Customer Flow Funnel</h4>
                           
-                          {/* Roamers */}
-                          <div className="relative mt-6">
-                            <div className="bg-gradient-to-r from-accent/90 to-accent/70 rounded-lg p-3 text-white text-center transition-all duration-300 hover:scale-105" style={{width: '60%', marginLeft: '20%'}}>
-                              <span className="font-semibold text-lg">Roamers: {funnelData.roamers}</span>
-                              <div className="text-sm opacity-90">Visitors who didn't engage with specific zones</div>
+                          {/* Funnel Container with SVG Shape */}
+                          <div className="relative mx-auto" style={{ width: '400px', height: '500px' }}>
+                            {/* SVG Funnel Background */}
+                            <svg 
+                              className="absolute inset-0 w-full h-full" 
+                              viewBox="0 0 400 500" 
+                              style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))' }}
+                            >
+                              <defs>
+                                <linearGradient id="funnelGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
+                                  <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="0.7" />
+                                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.5" />
+                                </linearGradient>
+                                <linearGradient id="funnelBorder" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="hsl(var(--primary))" />
+                                  <stop offset="100%" stopColor="hsl(var(--primary-foreground))" />
+                                </linearGradient>
+                              </defs>
+                              
+                              {/* Main Funnel Shape */}
+                              <path
+                                d="M 50 50 L 350 50 L 300 450 L 100 450 Z"
+                                fill="url(#funnelGradient)"
+                                stroke="url(#funnelBorder)"
+                                strokeWidth="2"
+                                className="transition-all duration-500"
+                              />
+                              
+                              {/* Funnel Segments */}
+                              {funnelData.zones
+                                .sort((a, b) => b.percentage - a.percentage)
+                                .map((zone, index) => {
+                                  const segmentHeight = 80;
+                                  const yPos = 60 + index * segmentHeight;
+                                  const topWidth = 300 - (index * 40);
+                                  const bottomWidth = 300 - ((index + 1) * 40);
+                                  const leftTop = 50 + (300 - topWidth) / 2;
+                                  const leftBottom = 50 + (300 - bottomWidth) / 2;
+                                  
+                                  return (
+                                    <g key={zone.zone}>
+                                      {/* Segment Separator Line */}
+                                      <line
+                                        x1={leftTop}
+                                        y1={yPos}
+                                        x2={leftTop + topWidth}
+                                        y2={yPos}
+                                        stroke="hsl(var(--border))"
+                                        strokeWidth="1"
+                                        strokeDasharray="5,5"
+                                        opacity="0.6"
+                                      />
+                                    </g>
+                                  );
+                                })}
+                            </svg>
+
+                            {/* Zone Labels and Data */}
+                            <div className="absolute inset-0 pointer-events-none">
+                              {funnelData.zones
+                                .sort((a, b) => b.percentage - a.percentage)
+                                .map((zone, index) => {
+                                  const segmentHeight = 80;
+                                  const yPos = 60 + index * segmentHeight + 25;
+                                  
+                                  return (
+                                    <div
+                                      key={zone.zone}
+                                      className="absolute transform -translate-x-1/2"
+                                      style={{
+                                        left: '50%',
+                                        top: `${yPos}px`,
+                                        width: '280px'
+                                      }}
+                                    >
+                                      <div className="bg-white/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg text-center">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-bold text-lg text-foreground">Zone {zone.zone}</span>
+                                          <span className="text-xl font-bold text-primary">{zone.percentage.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground mt-1 flex justify-between">
+                                          <span>{zone.unique_visitors} visitors</span>
+                                          <span>{Math.floor(zone.total_time_sec / 60)}min avg</span>
+                                        </div>
+                                        <div className="w-full bg-muted rounded-full h-2 mt-2">
+                                          <div 
+                                            className="bg-primary rounded-full h-2 transition-all duration-500"
+                                            style={{ width: `${zone.percentage}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                          
+                          {/* Roamers Section - Outside Funnel */}
+                          <div className="relative mt-8 mx-auto max-w-xs">
+                            <div className="bg-gradient-to-r from-accent/20 to-accent/30 border border-accent/50 rounded-lg p-4 text-center">
+                              <div className="text-lg font-bold text-accent">{funnelData.roamers} Roamers</div>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                Visitors who browsed without zone-specific engagement
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Funnel Statistics */}
+                          <div className="mt-6 bg-muted/30 rounded-lg p-4">
+                            <h5 className="font-semibold text-center mb-3">Conversion Insights</h5>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="text-center">
+                                <div className="font-bold text-primary">
+                                  {((funnelData.zones[0]?.percentage || 0) - (funnelData.zones[funnelData.zones.length - 1]?.percentage || 0)).toFixed(1)}%
+                                </div>
+                                <div className="text-muted-foreground">Drop-off Rate</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="font-bold text-green-600">
+                                  {(funnelData.zones.reduce((sum, z) => sum + z.total_time_sec, 0) / funnelData.zones.length / 60).toFixed(1)}min
+                                </div>
+                                <div className="text-muted-foreground">Avg Engagement</div>
+                              </div>
                             </div>
                           </div>
                         </div>

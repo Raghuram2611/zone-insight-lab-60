@@ -53,7 +53,7 @@ export const ZoneVideo = forwardRef<ZoneVideoRef, ZoneVideoProps>(
       }
     };
 
-    const videoSrc = `${baseUrl}/video/${zone}`;
+    const videoSrc = `/videos/${zone}.mp4`;
 
     return (
       <div className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
@@ -65,6 +65,9 @@ export const ZoneVideo = forwardRef<ZoneVideoRef, ZoneVideoProps>(
           onError={(e) => {
             console.error(`Failed to load video for zone ${zone}:`, e);
           }}
+          data-zone={zone}
+          muted
+          playsInline
           preload="metadata"
         />
         

@@ -201,13 +201,14 @@ export function CameraPanel({
                   className="w-full h-full object-cover rounded-lg"
                   muted
                   playsInline
+                  data-zone={zone}
                   poster="/placeholder.svg"
                   onError={(e) => {
                     const target = e.target as HTMLVideoElement;
                     target.style.display = 'none';
                   }}
                 >
-                  <source src={`${baseUrl}/videos/${zone}.mp4`} type="video/mp4" />
+                  <source src={`${baseUrl}/${zone}.mp4`} type="video/mp4" />
                 </video>
 
                 {/* Overlay */}

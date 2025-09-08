@@ -121,7 +121,7 @@ export function StoreLayout({
 
   // Handle WebSocket connection for replay
   useEffect(() => {
-    if (isReplaying && selectedDateTime && selectedZones.length > 0) {
+    if (isHistoricalMode && isReplaying && selectedDateTime && selectedZones.length > 0) {
       const timeString = selectedDateTime.toTimeString().split(' ')[0]; // Get HH:MM:SS format
       
       connect({
@@ -134,6 +134,19 @@ export function StoreLayout({
       });
       
       onReplayStart?.();
+      
+      // Auto-play videos
+      setTimeout(() => {
+        selectedZones.forEach(zone => {
+          const video = document.querySelector(`video[data-zone="${zone}"]`) as HTMLVideoElement;
+          if (video) {
+            const [hours, minutes, seconds] = timeString.split(':').map(Number);
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            video.currentTime = totalSeconds;
+            video.play().catch(console.error);
+          }
+        });
+      }, 500);
     } else if (!isReplaying) {
       disconnect();
       onReplayStop?.();
@@ -144,7 +157,7 @@ export function StoreLayout({
         disconnect();
       }
     };
-  }, [isReplaying, selectedDateTime, selectedZones, connect, disconnect, onReplayStart, onReplayStop]);
+  }, [isReplaying, selectedDateTime, selectedZones, connect, disconnect, onReplayStart, onReplayStop, isHistoricalMode]);
 
   const generateHeatMapData = useCallback(() => {
     if (!filteredData) return { blobs: [], dots: [] };
