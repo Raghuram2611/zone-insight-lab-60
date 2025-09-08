@@ -22,7 +22,11 @@ interface FunnelData {
   roamers: number;
 }
 
-export function FunnelingControls() {
+interface FunnelingControlsProps {
+  onFunnelData: (data: FunnelData | null) => void;
+}
+
+export function FunnelingControls({ onFunnelData }: FunnelingControlsProps) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [startTime, setStartTime] = useState("09:00:00");
@@ -54,6 +58,7 @@ export function FunnelingControls() {
         const data = await response.json();
         setFunnelData(data);
         setIsShowingFunnel(true);
+        onFunnelData(data);
         
         // Trigger video playback for all zones
         const videos = document.querySelectorAll('video');
@@ -158,62 +163,6 @@ export function FunnelingControls() {
         {isLoading ? 'Loading...' : 'View Funnel'}
       </Button>
 
-      {/* Funnel Visualization */}
-      {isShowingFunnel && funnelData && (
-        <Card className="mt-4">
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              {/* Store Stats */}
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-lg font-bold text-primary">{funnelData.store_population_start}</div>
-                  <div className="text-xs text-muted-foreground">Start Population</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-primary">{funnelData.total_visitors_period}</div>
-                  <div className="text-xs text-muted-foreground">Total Visitors</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-primary">{funnelData.store_population_end}</div>
-                  <div className="text-xs text-muted-foreground">End Population</div>
-                </div>
-              </div>
-
-              {/* Funnel Chart */}
-              <div className="space-y-2">
-                {funnelData.zones
-                  .sort((a, b) => b.percentage - a.percentage)
-                  .map((zone, index) => (
-                    <div key={zone.zone} className="relative">
-                      <div
-                        className="bg-gradient-to-r from-primary/80 to-primary/60 rounded-lg p-3 text-white relative overflow-hidden"
-                        style={{
-                          width: `${Math.max(zone.percentage, 10)}%`,
-                          marginLeft: `${(100 - Math.max(zone.percentage, 10)) / 2}%`
-                        }}
-                      >
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-medium">Zone {zone.zone}</span>
-                          <span>{zone.percentage.toFixed(1)}%</span>
-                        </div>
-                        <div className="text-xs opacity-90">
-                          {zone.unique_visitors} visitors • {Math.floor(zone.total_time_sec / 60)}min avg
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                
-                {/* Roamers */}
-                <div className="relative mt-4">
-                  <div className="bg-gradient-to-r from-accent/80 to-accent/60 rounded-lg p-2 text-white text-center text-sm">
-                    <span className="font-medium">Roamers: {funnelData.roamers}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
