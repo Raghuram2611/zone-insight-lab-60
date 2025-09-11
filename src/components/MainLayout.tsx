@@ -6,6 +6,7 @@ import { DateTimePicker } from "./DateTimePicker";
 import { StoreLayout } from "./StoreLayoutNew";
 import { UpdateIntervalSelector } from "./UpdateIntervalSelector";
 import { FunnelingControls } from "./FunnelingControls";
+import { AnalyticsPanel } from "./AnalyticsPanel";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
@@ -179,16 +180,8 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
             )}
             
             {selectedFeature === 'graph' && (
-              <div className="h-full flex items-center justify-center p-4">
-                <Card className="max-w-2xl w-full bg-card/60 backdrop-blur-sm">
-                  <CardContent className="p-8 text-center">
-                    <BarChart3 className="w-16 h-16 text-primary mx-auto mb-4" />
-                    <h3 className="text-xl font-medium mb-3">Analytics Dashboard</h3>
-                    <p className="text-muted-foreground">
-                      Real-time analytics and performance metrics visualization
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="h-full">
+                <AnalyticsPanel />
               </div>
             )}
 
