@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
-import { SimpleTimePicker } from "./SimpleTimePicker";
+import { DateTimePicker } from "./DateTimePicker";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
-import { BarChart3, Clock, TrendingUp } from "lucide-react";
+import { BarChart3, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface ZoneGraphData {
   zones: Record<string, Array<{ time: string; count: number }>>;
@@ -22,21 +21,24 @@ interface AnalyticsPanelProps {}
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export function AnalyticsPanel({}: AnalyticsPanelProps) {
-  const [startTime, setStartTime] = useState<string>("");
-  const [endTime, setEndTime] = useState<string>("");
+  const [startDateTime, setStartDateTime] = useState<Date | null>(null);
+  const [endDateTime, setEndDateTime] = useState<Date | null>(null);
   const [isZoneAnalytics, setIsZoneAnalytics] = useState(true);
   const [zoneGraphData, setZoneGraphData] = useState<ZoneGraphData | null>(null);
   const [zonePieData, setZonePieData] = useState<ZonePieData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAnalyze = async () => {
-    if (!startTime || !endTime) {
-      toast.error("Please select both start and end times");
+    if (!startDateTime || !endDateTime) {
+      toast.error("Please select both start and end date/times");
       return;
     }
 
     setIsLoading(true);
     try {
+      const startTimeStr = format(startDateTime, "HH:mm:ss");
+      const endTimeStr = format(endDateTime, "HH:mm:ss");
+
       if (isZoneAnalytics) {
         // Call zone-graphs API
         const response = await fetch("http://localhost:8000/zone-graphs", {
@@ -45,8 +47,8 @@ export function AnalyticsPanel({}: AnalyticsPanelProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            start_time: startTime,
-            end_time: endTime,
+            start_time: startTimeStr,
+            end_time: endTimeStr,
           }),
         });
 
@@ -65,13 +67,13 @@ export function AnalyticsPanel({}: AnalyticsPanelProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            start_time: startTime,
-            end_time: endTime,
+            start_time: startTimeStr,
+            end_time: endTimeStr,
           }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch overall analytics");
+          throw new Error("Failed to fetch individual analytics");
         }
 
         const data: ZonePieData = await response.json();
@@ -89,9 +91,11 @@ export function AnalyticsPanel({}: AnalyticsPanelProps) {
   const renderZoneGraphs = () => {
     if (!zoneGraphData) return null;
 
+    const zoneEntries = Object.entries(zoneGraphData.zones);
+    
     return (
-      <div className="space-y-6">
-        {Object.entries(zoneGraphData.zones).map(([zone, data]) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {zoneEntries.map(([zone, data]) => (
           <Card key={zone} className="bg-card/60 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -151,7 +155,7 @@ export function AnalyticsPanel({}: AnalyticsPanelProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
-            Overall Zone Distribution
+            Individual Zone Distribution
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -218,47 +222,60 @@ export function AnalyticsPanel({}: AnalyticsPanelProps) {
             Analytics Configuration
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Time Selectors */}
-          <div className="grid grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          {/* Date Time Selectors */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Start Time
-              </Label>
-              <SimpleTimePicker
-                onTimeSelect={setStartTime}
-                selectedTime={startTime}
+              <Label className="text-sm font-medium">Start Date & Time</Label>
+              <DateTimePicker
+                onDateTimeSelect={setStartDateTime}
+                onModeToggle={() => {}} // Not used in analytics
+                isHistoricalMode={false}
+                selectedDateTime={startDateTime}
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                End Time
-              </Label>
-              <SimpleTimePicker
-                onTimeSelect={setEndTime}
-                selectedTime={endTime}
+              <Label className="text-sm font-medium">End Date & Time</Label>
+              <DateTimePicker
+                onDateTimeSelect={setEndDateTime}
+                onModeToggle={() => {}} // Not used in analytics
+                isHistoricalMode={false}
+                selectedDateTime={endDateTime}
               />
             </div>
           </div>
 
           {/* Analytics Type Toggle */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="analytics-type"
-              checked={isZoneAnalytics}
-              onCheckedChange={setIsZoneAnalytics}
-            />
-            <Label htmlFor="analytics-type">
-              {isZoneAnalytics ? "Zone Analytics" : "Overall Analytics"}
-            </Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Analytics Type</Label>
+            <div className="flex bg-muted/30 rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setIsZoneAnalytics(true)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  isZoneAnalytics 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Zone Analysis
+              </button>
+              <button
+                onClick={() => setIsZoneAnalytics(false)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  !isZoneAnalytics 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Individual Analysis
+              </button>
+            </div>
           </div>
 
           {/* Analyze Button */}
           <Button
             onClick={handleAnalyze}
-            disabled={!startTime || !endTime || isLoading}
+            disabled={!startDateTime || !endDateTime || isLoading}
             className="w-full"
           >
             {isLoading ? "Analyzing..." : "Analyze"}
