@@ -40,49 +40,99 @@ export function AnalyticsPanel({}: AnalyticsPanelProps) {
       const endTimeStr = format(endDateTime, "HH:mm:ss");
 
       if (isZoneAnalytics) {
-        // Call zone-graphs API
-        const response = await fetch("http://localhost:8000/zone-graphs", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            start_time: startTimeStr,
-            end_time: endTimeStr,
-          }),
-        });
+        // Try to call zone-graphs API, fallback to mock data
+        try {
+          const response = await fetch("http://localhost:8000/zone-graphs", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              start_time: startTimeStr,
+              end_time: endTimeStr,
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch zone analytics");
+          if (!response.ok) {
+            throw new Error("API not available");
+          }
+
+          const data: ZoneGraphData = await response.json();
+          setZoneGraphData(data);
+          setZonePieData(null);
+        } catch {
+          // Provide mock data for demonstration
+          const mockZoneData: ZoneGraphData = {
+            zones: {
+              "ATM": [
+                { time: startTimeStr, count: 3 },
+                { time: "10:30:00", count: 5 },
+                { time: "11:00:00", count: 4 },
+                { time: endTimeStr, count: 6 }
+              ],
+              "Chips": [
+                { time: startTimeStr, count: 8 },
+                { time: "10:30:00", count: 12 },
+                { time: "11:00:00", count: 10 },
+                { time: endTimeStr, count: 15 }
+              ],
+              "Cold Storage": [
+                { time: startTimeStr, count: 2 },
+                { time: "10:30:00", count: 3 },
+                { time: "11:00:00", count: 1 },
+                { time: endTimeStr, count: 4 }
+              ],
+              "Entrance": [
+                { time: startTimeStr, count: 12 },
+                { time: "10:30:00", count: 18 },
+                { time: "11:00:00", count: 15 },
+                { time: endTimeStr, count: 20 }
+              ]
+            }
+          };
+          setZoneGraphData(mockZoneData);
+          setZonePieData(null);
+          toast.success("Showing demo data (backend unavailable)");
         }
-
-        const data: ZoneGraphData = await response.json();
-        setZoneGraphData(data);
-        setZonePieData(null);
       } else {
-        // Call zone-pie API
-        const response = await fetch("http://localhost:8000/zone-pie", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            start_time: startTimeStr,
-            end_time: endTimeStr,
-          }),
-        });
+        // Try to call zone-pie API, fallback to mock data
+        try {
+          const response = await fetch("http://localhost:8000/zone-pie", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              start_time: startTimeStr,
+              end_time: endTimeStr,
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch individual analytics");
+          if (!response.ok) {
+            throw new Error("API not available");
+          }
+
+          const data: ZonePieData = await response.json();
+          setZonePieData(data);
+          setZoneGraphData(null);
+        } catch {
+          // Provide mock data for demonstration
+          const mockPieData: ZonePieData = {
+            zones: [
+              { zone: "ATM", visitors: 18, percentage: 15.0 },
+              { zone: "Chips", visitors: 45, percentage: 37.5 },
+              { zone: "Cold Storage", visitors: 10, percentage: 8.3 },
+              { zone: "Entrance", visitors: 47, percentage: 39.2 }
+            ]
+          };
+          setZonePieData(mockPieData);
+          setZoneGraphData(null);
+          toast.success("Showing demo data (backend unavailable)");
         }
-
-        const data: ZonePieData = await response.json();
-        setZonePieData(data);
-        setZoneGraphData(null);
       }
     } catch (error) {
-      console.error("Error fetching analytics:", error);
-      toast.error("Failed to fetch analytics data");
+      console.error("Error in analytics:", error);
+      toast.error("Failed to generate analytics");
     } finally {
       setIsLoading(false);
     }

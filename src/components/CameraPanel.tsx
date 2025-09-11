@@ -200,15 +200,22 @@ export function CameraPanel({
                   }}
                   className="w-full h-full object-cover rounded-lg"
                   muted
+                  loop
                   playsInline
+                  autoPlay
                   data-zone={zone}
-                  poster="/placeholder.svg"
                   onError={(e) => {
                     const target = e.target as HTMLVideoElement;
                     target.style.display = 'none';
                   }}
+                  onLoadedData={(e) => {
+                    const video = e.target as HTMLVideoElement;
+                    video.play().catch(() => {
+                      // Silent fail for auto-play restrictions
+                    });
+                  }}
                 >
-                  <source src={`${baseUrl}/${zone}.mp4`} type="video/mp4" />
+                  <source src={`${baseUrl}/${zone === 'Cold Storage' ? 'Cold Storage' : zone}.mp4`} type="video/mp4" />
                 </video>
 
                 {/* Overlay */}

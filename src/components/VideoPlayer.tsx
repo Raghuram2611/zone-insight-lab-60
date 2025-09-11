@@ -22,9 +22,22 @@ export function VideoPlayer({
 
   useEffect(() => {
     if (videoRef.current && autoPlay) {
-      videoRef.current.play().catch(() => {
-        // Auto-play failed, which is normal in many browsers
-      });
+      // Ensure video is loaded before attempting to play
+      const video = videoRef.current;
+      
+      const attemptPlay = () => {
+        video.play().catch(() => {
+          // Auto-play failed, which is normal in many browsers
+        });
+      };
+
+      if (video.readyState >= 2) {
+        // Video is already loaded
+        attemptPlay();
+      } else {
+        // Wait for video to load
+        video.addEventListener('loadeddata', attemptPlay, { once: true });
+      }
     }
   }, [autoPlay, videoSrc, cctvUrl, selectedDateTime]);
 
@@ -69,6 +82,18 @@ export function VideoPlayer({
         loop={!selectedDateTime} // Don't loop CCTV footage
         autoPlay
         playsInline
+        preload="auto"
+        onLoadedData={() => {
+          // Ensure video starts playing when loaded
+          if (videoRef.current && autoPlay) {
+            videoRef.current.play().catch(() => {
+              // Silent fail for auto-play restrictions
+            });
+          }
+        }}
+        onError={() => {
+          console.warn(`Failed to load video: ${currentVideoSrc}`);
+        }}
       />
       {selectedDateTime && (
         <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-1 rounded">

@@ -53,7 +53,27 @@ export const ZoneVideo = forwardRef<ZoneVideoRef, ZoneVideoProps>(
       }
     };
 
-    const videoSrc = `/videos/${zone}.mp4`;
+    // Map zone names to video files - handle spaces in zone names
+    const getVideoSrc = (zoneName: string) => {
+      // Handle zone names with spaces by using the exact file names
+      const videoMap: Record<string, string> = {
+        'ATM': '/videos/ATM.mp4',
+        'Chips': '/videos/Chips.mp4',
+        'Cold Storage': '/videos/Cold Storage.mp4',
+        'Entrance': '/videos/Entrance.mp4',
+        'Office': '/videos/Office.mp4',
+        // Fallback for single letter zones
+        'A': '/videos/ATM.mp4',
+        'B': '/videos/Chips.mp4',
+        'C': '/videos/Cold Storage.mp4',
+        'D': '/videos/Entrance.mp4',
+        'E': '/videos/Office.mp4'
+      };
+      
+      return videoMap[zoneName] || `/videos/${zoneName}.mp4`;
+    };
+    
+    const videoSrc = getVideoSrc(zone);
 
     return (
       <div className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
@@ -64,11 +84,24 @@ export const ZoneVideo = forwardRef<ZoneVideoRef, ZoneVideoProps>(
           onTimeUpdate={handleTimeUpdate}
           onError={(e) => {
             console.error(`Failed to load video for zone ${zone}:`, e);
+            // Hide the video element on error to show fallback
+            const target = e.target as HTMLVideoElement;
+            target.style.display = 'none';
+          }}
+          onLoadedData={() => {
+            // Auto-play when video is loaded
+            if (videoRef.current) {
+              videoRef.current.play().catch(() => {
+                // Silent fail for auto-play restrictions
+              });
+            }
           }}
           data-zone={zone}
           muted
+          loop
           playsInline
-          preload="metadata"
+          autoPlay
+          preload="auto"
         />
         
         {/* Zone label */}
@@ -76,7 +109,7 @@ export const ZoneVideo = forwardRef<ZoneVideoRef, ZoneVideoProps>(
           Zone {zone}
         </div>
         
-        {/* Error fallback */}
+        {/* Error fallback - always visible initially, hidden when video loads */}
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20 text-muted-foreground">
           <div className="text-center">
             <div className="text-lg font-medium">Zone {zone}</div>

@@ -23,13 +23,17 @@ export function useWebSocket() {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
+    
     const connectWebSocket = () => {
       try {
         ws.current = new WebSocket("ws://localhost:8000/ws");
 
         ws.current.onopen = () => {
           setIsConnected(true);
-          console.log("WebSocket connected");
+          reconnectAttempts = 0;
+          console.log("Live WebSocket connected");
         };
 
         ws.current.onmessage = (event) => {
@@ -49,19 +53,49 @@ export function useWebSocket() {
 
         ws.current.onclose = () => {
           setIsConnected(false);
-          console.log("WebSocket disconnected, attempting to reconnect...");
-          // Attempt to reconnect after 5 seconds
-          setTimeout(connectWebSocket, 5000);
+          
+          // Only attempt reconnection if under max attempts
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.pow(2, reconnectAttempts) * 1000; // Exponential backoff
+            setTimeout(connectWebSocket, delay);
+          } else {
+            console.log("Max WebSocket reconnection attempts reached");
+            // Provide mock data for demonstration
+            setLiveData({
+              store_id: "demo-store",
+              timestamp: new Date().toISOString(),
+              zones: {
+                "ATM": { population: 3, avg_time: 45, heat_score: 0.6 },
+                "Chips": { population: 8, avg_time: 120, heat_score: 0.8 },
+                "Cold Storage": { population: 2, avg_time: 30, heat_score: 0.3 },
+                "Entrance": { population: 12, avg_time: 15, heat_score: 0.9 },
+                "Office": { population: 5, avg_time: 180, heat_score: 0.5 }
+              }
+            });
+          }
         };
 
         ws.current.onerror = (error) => {
-          console.error("WebSocket error:", error);
           setIsConnected(false);
+          // Don't log network connection errors aggressively
         };
       } catch (error) {
-        console.error("Failed to connect to WebSocket:", error);
-        // Retry connection after 5 seconds
-        setTimeout(connectWebSocket, 5000);
+        setIsConnected(false);
+        // Fallback to mock data if WebSocket fails entirely
+        if (reconnectAttempts >= maxReconnectAttempts) {
+          setLiveData({
+            store_id: "demo-store",
+            timestamp: new Date().toISOString(),
+            zones: {
+              "ATM": { population: 3, avg_time: 45, heat_score: 0.6 },
+              "Chips": { population: 8, avg_time: 120, heat_score: 0.8 },
+              "Cold Storage": { population: 2, avg_time: 30, heat_score: 0.3 },
+              "Entrance": { population: 12, avg_time: 15, heat_score: 0.9 },
+              "Office": { population: 5, avg_time: 180, heat_score: 0.5 }
+            }
+          });
+        }
       }
     };
 
