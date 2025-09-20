@@ -36,7 +36,7 @@ export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost
       >
         <div className="relative w-full h-full">
           {/* Header */}
-          <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
+          <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border p-4">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-lg font-semibold">
                 Zone {zone} - Live Feed

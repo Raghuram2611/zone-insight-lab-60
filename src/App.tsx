@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LoginPage } from "@/components/LoginPage";
@@ -25,33 +24,22 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system">
-        <TooltipProvider>
-          <div className="min-h-screen bg-background text-foreground">
-            <Toaster />
-            <Sonner />
-            {!user ? (
-              <LoginPage onLogin={handleLogin} />
-            ) : (
-              <BrowserRouter>
-                <Routes>
-                  <Route
-                    path="/"
-                    element={
-                      user.role === "admin" ? (
-                        <AdminDashboard onLogout={handleLogout} />
-                      ) : (
-                        <Index onLogout={handleLogout} />
-                      )
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            )}
-          </div>
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        {!user ? (
+          <LoginPage onLogin={handleLogin} />
+        ) : user.role === 'admin' ? (
+          <AdminDashboard onLogout={handleLogout} />
+        ) : (
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index onLogout={handleLogout} />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        )}
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };

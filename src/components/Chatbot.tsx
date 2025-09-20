@@ -119,7 +119,7 @@ export function Chatbot() {
             transition={{ duration: 0.2 }}
             className="fixed bottom-6 right-6 z-50 w-[440px]"
           >
-            <Card className={`bg-background/98 backdrop-blur-sm flex flex-col shadow-lg border-primary/20 ${
+            <Card className={`bg-card/95 backdrop-blur-sm flex flex-col shadow-lg border-primary/20 ${
               isMinimized ? 'h-auto' : 'h-[600px]'
             }`}>
               <CardHeader className="border-b border-border/50">

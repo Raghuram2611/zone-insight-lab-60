@@ -48,7 +48,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
       
       <div className="flex h-[calc(100vh-64px)]">
         {/* Left Panel - Camera Matrix (50%) */}
-        <div className="w-1/2 border-r border-border bg-background flex flex-col">
+        <div className="w-1/2 border-r border-border bg-card/50 flex flex-col">
           <CameraPanel
             zones={zones}
             selectedZones={selectedZones}
