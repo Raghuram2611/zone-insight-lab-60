@@ -26,6 +26,8 @@ export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost
     setIsFullscreen(!isFullscreen);
   };
 
+  console.log(`${baseUrl}/videos/${zone}.mp4`)
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
@@ -98,7 +100,7 @@ export function CameraModal({ zone, isOpen, onClose, baseUrl = "http://localhost
                 console.error('Video load error for zone:', zone);
               }}
             >
-              <source src={`${baseUrl}/videos/${zone}.mp4`} type="video/mp4" />
+              <source src={`${baseUrl}/${zone}.mp4`} type="video/mp4" />
               <div className="w-full h-full flex items-center justify-center bg-muted">
                 <div className="text-center">
                   <div className="text-muted-foreground mb-2">No video source available</div>
