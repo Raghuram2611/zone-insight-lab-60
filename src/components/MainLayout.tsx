@@ -11,6 +11,7 @@ import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { useZoneDiscovery } from "@/hooks/useZoneDiscovery";
 import { BarChart3, TrendingUp } from "lucide-react";
+import { Chatbot } from "./Chatbot";
 
 interface MainLayoutProps {
   onLogout: () => void;
@@ -354,6 +355,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
           </div>
         </div>
       </div>
+      <Chatbot />
     </div>
   );
 }
