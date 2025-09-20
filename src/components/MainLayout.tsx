@@ -41,44 +41,6 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
 
   const { zones } = useZoneDiscovery();
 
-  // Demo data generation for store funneling
-  const generateDemoFunnelData = () => {
-    // Base population numbers
-    const startPop = Math.floor(Math.random() * (150 - 100) + 100);  // 100-150 people
-    const totalVisitors = Math.floor(Math.random() * (500 - 400) + 400);  // 400-500 visitors
-    const endPop = Math.floor(Math.random() * (120 - 80) + 80);  // 80-120 people
-
-    // Generate zone data with realistic drop-off patterns
-    const zoneData = [
-      { zone: "Entrance", base: 100 },
-      { zone: "Shopping", base: 85 },
-      { zone: "Electronics", base: 45 },
-      { zone: "Checkout", base: 30 },
-    ].map(({ zone, base }) => {
-      const variance = Math.random() * 10 - 5;  // -5 to +5
-      const percentage = Math.max(0, Math.min(100, base + variance));
-      const visitors = Math.floor((totalVisitors * percentage) / 100);
-      
-      return {
-        zone,
-        unique_visitors: visitors,
-        total_time_sec: Math.floor(Math.random() * (900 - 300) + 300),  // 5-15 minutes
-        percentage: percentage
-      };
-    });
-
-    // Calculate roamers (people who didn't follow the main path)
-    const roamers = Math.floor(totalVisitors * (Math.random() * (0.15 - 0.05) + 0.05));  // 5-15% of total
-
-    return {
-      store_population_start: startPop,
-      store_population_end: endPop,
-      total_visitors_period: totalVisitors,
-      zones: zoneData,
-      roamers
-    };
-  };
-
   return (
     <div className="h-screen bg-background overflow-hidden">
       {/* Fixed Header */}
@@ -216,20 +178,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
 
             {selectedFeature === 'storefunneling' && (
               <div className="space-y-6">
-                <Card className="border border-border/50">
-                  <CardContent className="p-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium">Analyze Store Traffic</h4>
-                        <Button
-                          onClick={() => setFunnelData(generateDemoFunnelData())}
-                          variant="default"
-                          size="sm"
-                        >
-                          View Demo Data
-                        </Button>
-                      </div>
-                      <FunnelingControls onFunnelData={setFunnelData} />
+                <FunnelingControls onFunnelData={setFunnelData} />
 
                 {funnelData ? (
                   <Card className="border border-border/50">
