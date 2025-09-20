@@ -158,26 +158,30 @@ export function Chatbot() {
                 )}
               </CardHeader>
               {!isMinimized && (
-                <CardContent className="flex-1 flex flex-col gap-4 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col gap-3 overflow-hidden p-1">
                   {/* Questions Section */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {QUESTIONS.map(q => (
-                      <Button
-                        key={q.id}
-                        variant="outline"
-                        className="h-auto py-3 px-4 flex flex-col items-start gap-1"
-                        onClick={() => handleAsk(q.id)}
-                        disabled={loading}
-                      >
-                        <div className="font-medium">{q.text}</div>
-                        <div className="text-xs text-muted-foreground">{q.description}</div>
-                      </Button>
-                    ))}
+                  <div className="border rounded-md p-3 bg-muted/30">
+                    <ScrollArea className="w-full h-[160px]">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-4">
+                        {QUESTIONS.map(q => (
+                          <Button
+                            key={q.id}
+                            variant="outline"
+                            className="h-auto py-2.5 px-3 flex flex-col items-start gap-1.5 w-full text-left hover:bg-accent/50 bg-background"
+                            onClick={() => handleAsk(q.id)}
+                            disabled={loading}
+                          >
+                            <div className="font-medium text-sm w-full whitespace-normal break-words">{q.text}</div>
+                            <div className="text-xs text-muted-foreground/75 w-full whitespace-normal break-words">{q.description}</div>
+                          </Button>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </div>
 
                   {/* Error Message */}
                   {error && (
-                    <Alert variant="destructive">
+                    <Alert variant="destructive" className="py-2">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
@@ -185,18 +189,18 @@ export function Chatbot() {
 
                   {/* Chat History */}
                   {chatHistory.length > 0 && (
-                    <ScrollArea className="flex-1 border rounded-md p-4">
-                      <div className="space-y-4">
+                    <ScrollArea className="flex-1 border rounded-md p-3 bg-background/50">
+                      <div className="space-y-4 max-w-full">
                         {chatHistory.map(msg => (
                           <div key={msg.id} className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                            <div className="flex items-start gap-2 max-w-[85%]">
+                              <div className="bg-primary/10 rounded-lg p-2.5 text-sm break-words whitespace-pre-wrap">
                                 {msg.question}
                               </div>
                             </div>
-                            <div className="flex items-start gap-2 pl-4">
+                            <div className="flex items-start gap-2 pl-4 max-w-[85%] ml-auto">
                               {msg.answer ? (
-                                <div className="bg-muted rounded-lg p-3 text-sm">
+                                <div className="bg-muted rounded-lg p-2.5 text-sm break-words whitespace-pre-wrap">
                                   {msg.answer}
                                 </div>
                               ) : (
