@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Eye, EyeOff, Monitor, Shield } from "lucide-react";
+import { getAuthCookie, removeAuthCookie, setAuthCookie } from "@/lib/auth";
+import { toast } from "sonner";
 
 interface LoginPageProps {
   onLogin: (role: 'user' | 'admin') => void;
@@ -16,23 +18,48 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check for existing valid auth cookie on mount
+  useEffect(() => {
+    const authData = getAuthCookie();
+    if (authData) {
+      onLogin(authData.role);
+      toast.success(`Welcome back, ${authData.username}!`);
+    }
+  }, [onLogin]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // Simulate login delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Simulate login delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-    if (username === "User" && password === "User") {
-      onLogin('user');
-    } else if (username === "Admin" && password === "Admin") {
-      onLogin('admin');
-    } else {
-      setError("Invalid credentials. Please try again.");
+      let role: 'user' | 'admin' | null = null;
+
+      if (username === "User" && password === "User") {
+        role = 'user';
+      } else if (username === "Admin" && password === "Admin") {
+        role = 'admin';
+      }
+
+      if (role) {
+        // Set auth cookie and trigger login
+        setAuthCookie(username, role);
+        onLogin(role);
+        toast.success(`Welcome, ${username}!`);
+      } else {
+        setError("Invalid credentials. Please try again.");
+        toast.error("Login failed. Please check your credentials.");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An error occurred. Please try again.");
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

@@ -141,16 +141,6 @@ export function DateTimePicker({
           </div>
         </div>
       </div>
-
-      {/* Selected DateTime Display */}
-      {date && timeInput && (
-        <div className="text-center p-3 bg-primary/10 border border-primary/20 rounded-lg">
-          <div className="text-sm text-muted-foreground mb-1">Selected Time</div>
-          <div className="text-lg font-mono font-medium text-foreground">
-            {format(date, "MMM dd, yyyy")} • {timeInput}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

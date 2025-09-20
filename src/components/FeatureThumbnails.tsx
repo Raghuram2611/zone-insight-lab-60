@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
-import { Activity, BarChart3, TrendingUp } from "lucide-react";
+import { Activity, BarChart3, TrendingUp, MessageSquare } from "lucide-react";
 
 interface FeatureThumbnailsProps {
   onFeatureSelect: (feature: string) => void;
@@ -28,7 +28,8 @@ const features = [
     description: "Customer flow analysis",
     icon: TrendingUp,
     color: "text-accent"
-  }
+  },
+
 ];
 
 export function FeatureThumbnails({ onFeatureSelect, selectedFeature }: FeatureThumbnailsProps) {
