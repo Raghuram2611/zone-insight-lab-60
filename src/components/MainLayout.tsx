@@ -41,156 +41,199 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
 
   const { zones } = useZoneDiscovery();
 
+  // Demo data generation for store funneling
+  const generateDemoFunnelData = () => {
+    // Base population numbers
+    const startPop = Math.floor(Math.random() * (150 - 100) + 100);  // 100-150 people
+    const totalVisitors = Math.floor(Math.random() * (500 - 400) + 400);  // 400-500 visitors
+    const endPop = Math.floor(Math.random() * (120 - 80) + 80);  // 80-120 people
+
+    // Generate zone data with realistic drop-off patterns
+    const zoneData = [
+      { zone: "Entrance", base: 100 },
+      { zone: "Shopping", base: 85 },
+      { zone: "Electronics", base: 45 },
+      { zone: "Checkout", base: 30 },
+    ].map(({ zone, base }) => {
+      const variance = Math.random() * 10 - 5;  // -5 to +5
+      const percentage = Math.max(0, Math.min(100, base + variance));
+      const visitors = Math.floor((totalVisitors * percentage) / 100);
+      
+      return {
+        zone,
+        unique_visitors: visitors,
+        total_time_sec: Math.floor(Math.random() * (900 - 300) + 300),  // 5-15 minutes
+        percentage: percentage
+      };
+    });
+
+    // Calculate roamers (people who didn't follow the main path)
+    const roamers = Math.floor(totalVisitors * (Math.random() * (0.15 - 0.05) + 0.05));  // 5-15% of total
+
+    return {
+      store_population_start: startPop,
+      store_population_end: endPop,
+      total_visitors_period: totalVisitors,
+      zones: zoneData,
+      roamers
+    };
+  };
+
   return (
     <div className="h-screen bg-background overflow-hidden">
       {/* Fixed Header */}
       <TopHeader selectedDateTime={selectedDateTime} onLogout={onLogout} />
       
       <div className="flex h-[calc(100vh-64px)]">
-        {/* Left Panel - Camera Matrix (50%) */}
-        <div className="w-1/2 border-r border-border bg-card/50 flex flex-col">
-          <CameraPanel
-            zones={zones}
-            selectedZones={selectedZones}
-            onZoneChange={setSelectedZones}
-            selectedDateTime={selectedDateTime}
-            isReplaying={isReplaying}
-            onReplayStart={() => setIsReplaying(true)}
-            onReplayStop={() => setIsReplaying(false)}
-            updateInterval={updateInterval}
-          />
+        {/* Left Panel - Camera Matrix */}
+        <div className="w-1/2 border-r border-border bg-card/95 backdrop-blur-sm">
+          <div className="p-6">
+            <CameraPanel
+              zones={zones}
+              selectedZones={selectedZones}
+              onZoneChange={setSelectedZones}
+              selectedDateTime={selectedDateTime}
+              isReplaying={isReplaying}
+              onReplayStart={() => setIsReplaying(true)}
+              onReplayStop={() => setIsReplaying(false)}
+              updateInterval={updateInterval}
+            />
+          </div>
         </div>
 
-        {/* Right Panel - Features and Layout (50%) */}
-        <div className="w-1/2 flex flex-col overflow-hidden">
-          {/* Compact Feature Selection */}
-          <div className="border-b border-border bg-card/30 py-1">
+        {/* Right Panel - Features */}
+        <div className="w-1/2 flex flex-col bg-background">
+          {/* Feature Selection */}
+          <div className="border-b border-border bg-card/95 backdrop-blur-sm p-4">
             <FeatureThumbnails
               selectedFeature={selectedFeature}
               onFeatureSelect={setSelectedFeature}
             />
           </div>
 
-          {/* Heatmap Controls - Systematic Flow */}
-          {selectedFeature === 'heatmap' && (
-            <div className="border-b border-border bg-card/30 p-3 space-y-3">
-              {/* Step 1: View Historical Button */}
-              {!showHistoricalMode && (
-                <div className="text-center">
-                  <Button
-                    onClick={() => setShowHistoricalMode(true)}
-                    variant="default"
-                    className="min-w-[140px]"
-                  >
-                    View Historical
-                  </Button>
-                </div>
-              )}
-              
-              {/* Step 2: Date Time Selection */}
-              {showHistoricalMode && !selectedDateTime && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Select Start Time</h4>
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-auto p-3">
+            {selectedFeature === 'heatmap' && (
+              <div className="h-full space-y-6">
+                {!showHistoricalMode ? (
+                  <div className="text-center py-4">
                     <Button
-                      onClick={() => {
-                        setShowHistoricalMode(false);
-                        setSelectedDateTime(undefined);
-                        setIsReplaying(false);
-                      }}
-                      variant="ghost"
-                      size="sm"
+                      onClick={() => setShowHistoricalMode(true)}
+                      variant="default"
+                      className="min-w-[140px]"
                     >
-                      Cancel
+                      View Historical
                     </Button>
                   </div>
-                  <DateTimePicker
-                    onDateTimeSelect={setSelectedDateTime}
-                    onModeToggle={() => {}}
-                    isHistoricalMode={true}
+                ) : (
+                  <Card className="border border-border/50">
+                    <CardContent className="p-4 space-y-6">
+                      {!selectedDateTime ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium">Select Start Time</h4>
+                            <Button
+                              onClick={() => {
+                                setShowHistoricalMode(false);
+                                setSelectedDateTime(undefined);
+                                setIsReplaying(false);
+                              }}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                          <DateTimePicker
+                            onDateTimeSelect={setSelectedDateTime}
+                            onModeToggle={() => {}}
+                            isHistoricalMode={true}
+                            selectedDateTime={selectedDateTime}
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm">
+                              <div className="font-medium">Start Time Selected</div>
+                              <div className="text-muted-foreground">
+                                {selectedDateTime.toLocaleDateString()} • {selectedDateTime.toLocaleTimeString()}
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => {
+                                setSelectedDateTime(undefined);
+                              }}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              Change Time
+                            </Button>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                              <UpdateIntervalSelector
+                                value={updateInterval}
+                                onChange={setUpdateInterval}
+                              />
+                            </div>
+                            <Button
+                              onClick={() => setIsReplaying(!isReplaying)}
+                              disabled={selectedZones.length === 0}
+                              variant={isReplaying ? "destructive" : "default"}
+                            >
+                              {isReplaying ? 'Stop Replay' : 'Start Replay'}
+                            </Button>
+                          </div>
+
+                          <div className="text-sm text-muted-foreground text-center">
+                            {selectedZones.length} zones selected
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="h-full p-2">
+                  <StoreLayout
                     selectedDateTime={selectedDateTime}
+                    selectedZones={selectedZones}
+                    onReplayStart={() => setIsReplaying(true)}
+                    onReplayStop={() => setIsReplaying(false)}
+                    isReplaying={isReplaying}
+                    isHistoricalMode={showHistoricalMode}
+                    updateInterval={updateInterval}
                   />
                 </div>
-              )}
-              
-              {/* Step 3: Update Interval & Start Replay */}
-              {selectedDateTime && showHistoricalMode && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm">
-                      <div className="font-medium">Start Time Selected</div>
-                      <div className="text-muted-foreground">
-                        {selectedDateTime.toLocaleDateString()} • {selectedDateTime.toLocaleTimeString()}
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => {
-                        setSelectedDateTime(undefined);
-                        setShowHistoricalMode(false);
-                        setIsReplaying(false);
-                      }}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      Change Time
-                    </Button>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <UpdateIntervalSelector
-                      value={updateInterval}
-                      onChange={setUpdateInterval}
-                    />
-                    <Button
-                      onClick={isReplaying ? () => window.location.reload() : () => setIsReplaying(true)}
-                      disabled={selectedZones.length === 0}
-                      size="sm"
-                      variant={isReplaying ? "destructive" : "default"}
-                      className="min-w-[100px]"
-                    >
-                      {isReplaying ? 'Stop' : 'Start Replay'}
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedZones.length} zones selected
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Store Funneling Controls */}
-          {selectedFeature === 'storefunneling' && (
-            <FunnelingControls onFunnelData={setFunnelData} />
-          )}
-
-          {/* Main Content - Scrollable with more space */}
-          <div className="flex-1 overflow-auto">
-            {selectedFeature === 'heatmap' && (
-              <div className="h-full p-2">
-                <StoreLayout
-                  selectedDateTime={selectedDateTime}
-                  selectedZones={selectedZones}
-                  onReplayStart={() => setIsReplaying(true)}
-                  onReplayStop={() => setIsReplaying(false)}
-                  isReplaying={isReplaying}
-                  isHistoricalMode={showHistoricalMode}
-                  updateInterval={updateInterval}
-                />
               </div>
             )}
             
             {selectedFeature === 'graph' && (
-              <div className="h-full">
-                <AnalyticsPanel />
-              </div>
+              <AnalyticsPanel />
             )}
 
             {selectedFeature === 'storefunneling' && (
-              <div className="h-full p-2">
+              <div className="space-y-6">
+                <Card className="border border-border/50">
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">Analyze Store Traffic</h4>
+                        <Button
+                          onClick={() => setFunnelData(generateDemoFunnelData())}
+                          variant="default"
+                          size="sm"
+                        >
+                          View Demo Data
+                        </Button>
+                      </div>
+                      <FunnelingControls onFunnelData={setFunnelData} />
+
                 {funnelData ? (
-                  <Card className="h-full bg-card/60 backdrop-blur-sm">
-                    <CardContent className="p-6 h-full overflow-auto">
+                  <Card className="border border-border/50">
+                    <CardContent className="p-6">
                       <div className="space-y-6">
                         {/* Store Stats */}
                         <div className="grid grid-cols-3 gap-6 text-center">
@@ -232,7 +275,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
                                 </linearGradient>
                               </defs>
                               
-                              {/* Main Funnel Shape - True Funnel */}
+                              {/* Main Funnel Shape */}
                               <path
                                 d="M 80 60 L 320 60 L 280 150 L 120 150 Z M 120 150 L 280 150 L 250 240 L 150 240 Z M 150 240 L 250 240 L 220 330 L 180 330 Z M 180 330 L 220 330 L 210 420 L 190 420 Z"
                                 fill="url(#funnelGradient)"
@@ -355,6 +398,7 @@ export function MainLayout({ onLogout }: MainLayoutProps) {
           </div>
         </div>
       </div>
+      
       <Chatbot />
     </div>
   );
